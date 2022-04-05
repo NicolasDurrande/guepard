@@ -1,1 +1,1 @@
-# posterior_aggregation_with_pseudo_likelihoods
+# PAPL: posterior Aggregation with Pseudo-Likelihoods
