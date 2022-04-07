@@ -11,6 +11,7 @@ gpflow = "^2.2.1"
 gpflux = "^0.2.3"
 matplotlib = "^3.3.3"
 jupyterlab = "^3.3.1"
+tensorflow-probability = "<=0.13"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -26,7 +27,7 @@ flake8 = "^4.0.1"
 pytest = "^7.0.1"
 
 [tool.taskipy.tasks]
-format = "autoflake --remove-all-unused-imports --recursive --remove-unused-variables --in-place --exclude=__init__.py papl tests && black instabo tests && isort papl tests"
+format = "autoflake --remove-all-unused-imports --recursive --remove-unused-variables --in-place --exclude=__init__.py papl tests && black papl tests && isort papl tests"
 check = "flake8 --statistics --exclude=.ipynb_checkpoints tests papl && black --check --diff tests papl && isort --check --diff tests papl"
 test = "pytest -v -x --ff -rN -Wignore -s --tb=short --durations=10"
 
