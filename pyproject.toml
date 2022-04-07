@@ -1,4 +1,5 @@
 [tool.poetry]
+packages = [{include = "papl", from = "."}]
 name = "papl"
 version = "0.1.0"
 description = ""

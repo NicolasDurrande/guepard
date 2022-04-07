@@ -1,3 +1,4 @@
 __version__ = "0.1.0"
 
-import papl.GPR_submodels
+from papl import GPR_submodels
+from papl.papl import PAPL
