@@ -1,4 +1,4 @@
-[![Quality checks and Tests](https://github.com/NicolasDurrande/posterior_aggregation_with_pseudo_likelihoods/actions/workflows/quality-check.yaml/badge.svg)](https://github.com/NicolasDurrande/posterior_aggregation_with_pseudo_likelihoods/actions/workflows/quality-check.yaml)
+[![Quality checks and Tests](https://github.com/NicolasDurrande/posterior_aggregation_with_pseudo_likelihoods/actions/workflows/quality-checks.yaml/badge.svg)](https://github.com/NicolasDurrande/posterior_aggregation_with_pseudo_likelihoods/actions/workflows/quality-checks.yaml)
 
 # PAPL: posterior Aggregation with Pseudo-Likelihoods
 
