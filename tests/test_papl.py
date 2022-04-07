@@ -3,7 +3,9 @@ import numpy as np
 import pytest
 
 import papl
-from papl.GPR_submodels import get_gpr_submodels
+from papl.gpr_submodels import get_gpr_submodels
+
+np.random.seed(123456)
 
 
 def test_get_gpr_submodels():
@@ -26,7 +28,7 @@ def test_get_gpr_submodels():
 @pytest.mark.parametrize("num_latent", [1, 2])
 def test_papl_predict_marginals(num_latent):
     dim = 3
-    num_data = 100
+    num_data = 200
     num_split = 3
     X = np.random.uniform(size=(num_data, dim))
     Y = np.cos(X[:, :num_latent]) + np.random.normal(
