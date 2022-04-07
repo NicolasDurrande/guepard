@@ -1,3 +1,5 @@
+[![Quality checks and Tests](https://github.com/NicolasDurrande/posterior_aggregation_with_pseudo_likelihoods/actions/workflows/quality-check.yaml/badge.svg)](https://github.com/NicolasDurrande/posterior_aggregation_with_pseudo_likelihoods/actions/workflows/quality-check.yaml)
+
 # PAPL: posterior Aggregation with Pseudo-Likelihoods
 
 PAPL aims at building faster Gaussian process models by constructing and aggregading sub-models based on subsets of the data.
