@@ -121,4 +121,8 @@ class PAPL(GPModel):
         return tf.transpose(mean[:, :, 0]), var
 
     def maximum_log_likelihood_objective(self):
-        pass
+        objectives = [m.maximum_log_likelihood_objective() for m in self.models]
+        return tf.reduce_sum(objectives)
+    
+    def training_loss(self):
+        return -self.maximum_log_likelihood_objective()
