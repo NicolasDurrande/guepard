@@ -1,4 +1,4 @@
-[![Quality checks and Tests](https://github.com/NicolasDurrande/guepard/workflows/quality-checks.yaml/badge.svg)](https://github.com/NicolasDurrande/guepard/actions/workflows/quality-checks.yaml)
+[![Quality checks and Tests](https://github.com/NicolasDurrande/guepard/actions/workflows/quality-checks.yaml/badge.svg)](https://github.com/NicolasDurrande/guepard/actions/workflows/quality-checks.yaml)
 
 # Guepard: A python library for aggregating Gaussian process sub-models
 
