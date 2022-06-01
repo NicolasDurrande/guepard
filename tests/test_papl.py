@@ -2,8 +2,8 @@ import gpflow
 import numpy as np
 import pytest
 
-import papl
-from papl.gpr_submodels import get_gpr_submodels
+import guepard
+from guepard.gpr_submodels import get_gpr_submodels
 
 np.random.seed(123456)
 
@@ -42,7 +42,7 @@ def test_papl_predict_f_marginals(num_latent):
 
     # make submodels and aggregate them
     M = get_gpr_submodels(zip(Xl, Yl), kernel)
-    m_agg = papl.PAPL(M)
+    m_agg = guepard.PAPL(M)
 
     # make a GPR model as baseline
     m_gpr = gpflow.models.GPR((X, Y), kernel, noise_variance=0.1)
@@ -98,7 +98,7 @@ def test_papl_predict_f(num_latent):
 
     # make submodels and aggregate them
     M = get_gpr_submodels(zip(Xl, Yl), kernel)
-    m_agg = papl.PAPL(M)
+    m_agg = guepard.PAPL(M)
 
     # make a GPR model as baseline
     m_gpr = gpflow.models.GPR((X, Y), kernel, noise_variance=0.1)

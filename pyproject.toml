@@ -1,13 +1,13 @@
 [tool.poetry]
-packages = [{include = "papl", from = "."}]
-name = "papl"
+packages = [{include = "guepard", from = "."}]
+name = "guepard"
 version = "0.1.0"
 description = ""
 authors = ["Nicolas Durrande"]
 license = "Apache 2.0"
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = ">=3.9,<3.11"
 gpflow = "^2.2.1"
 gpflux = "^0.2.3"
 matplotlib = "^3.3.3"
@@ -28,8 +28,8 @@ flake8 = "^4.0.1"
 pytest = "^7.0.1"
 
 [tool.taskipy.tasks]
-format = "autoflake --remove-all-unused-imports --recursive --remove-unused-variables --in-place --exclude=__init__.py papl tests && black papl tests && isort papl tests"
-check = "flake8 --statistics --exclude=.ipynb_checkpoints tests papl && black --check --diff tests papl && isort --check --diff tests papl"
+format = "autoflake --remove-all-unused-imports --recursive --remove-unused-variables --in-place --exclude=__init__.py guepard tests && black guepard tests && isort guepard tests"
+check = "flake8 --statistics --exclude=.ipynb_checkpoints tests guepard && black --check --diff tests guepard && isort --check --diff tests guepard"
 test = "pytest -v -x --ff -rN -Wignore -s --tb=short --durations=10"
 
 [tool.black]
