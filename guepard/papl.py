@@ -118,6 +118,10 @@ class PAPL(GPModel):
             tf.linalg.inv(vp[0, :, :]) @ mp[0, :, :]
             + tf.reduce_sum(tf.linalg.inv(pseudo_noise) @ pseudo_y, axis=0)
         )
+
+        if not full_cov:
+            var = tf.transpose(tf.linalg.diag_part(var))
+            
         return tf.transpose(mean[:, :, 0]), var
 
     def maximum_log_likelihood_objective(self):

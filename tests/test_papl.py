@@ -103,6 +103,22 @@ def test_papl_predict_f(num_latent):
     # make a GPR model as baseline
     m_gpr = gpflow.models.GPR((X, Y), kernel, noise_variance=0.1)
 
+    # Check shapes of output matches the GPflow convention
+    mean_agg, var_agg = m_agg.predict_f(X, full_cov=False)
+    mean_gpr, var_gpr = m_gpr.predict_f(X, full_cov=False)
+
+    np.testing.assert_array_almost_equal(
+        mean_agg.shape,
+        mean_gpr.shape,
+        err_msg="mismatch between the PALP predict_f mean shape and the GPflow convention",
+    )
+
+    np.testing.assert_array_almost_equal(
+        var_agg.shape,
+        var_gpr.shape,
+        err_msg="mismatch between the PALP predict_f variance shape and the GPflow convention",
+    )
+
     # Check "good" match between aggregated model and gpr at training points
     mean_agg, var_agg = m_agg.predict_f(X, full_cov=True)
     mean_gpr, var_gpr = m_gpr.predict_f(X, full_cov=True)
@@ -121,7 +137,7 @@ def test_papl_predict_f(num_latent):
     )
 
     # Check "good" match between aggregated model and prior far away from training data
-    mean_agg, var_agg = m_agg.predict_f(X + 10.0)
+    mean_agg, var_agg = m_agg.predict_f(X + 10.0, full_cov=True)
 
     np.testing.assert_array_almost_equal(
         mean_agg,
