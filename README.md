@@ -2,7 +2,7 @@
 
 # Guepard: A python library for aggregating Gaussian process sub-models
 
-Guepard aims at building faster Gaussian process models by constructing and aggregading sub-models based on subsets of the data. It is based on GPflow and implements various aggregation methods:
+Guepard aims at building faster Gaussian process models by constructing and aggregating sub-models based on subsets of the data. It is based on GPflow and implements various aggregation methods:
 * PAPL (posterior aggregation with Pseudo-Likelihood)
 * more to be added!
 
@@ -31,7 +31,7 @@ pip install tensorflow-macos
 ```
 
 ## Development
-The project uses *black* and *flake8* for code formating:
+The project uses *black* and *flake8* for code formatting:
 ```
 poetry run task check
 poetry run task format
