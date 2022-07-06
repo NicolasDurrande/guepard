@@ -9,25 +9,29 @@ Guepard aims at building faster Gaussian process models by constructing and aggr
 ## Install
 
 ### Using poetry (recommended)
+
+> **_NOTE:_**  :exclamation: The poetry-based setup does *not* work on the new Apple Silicon devices. See [Installation Apple Silicon](#Installation-Apple-Silicon) for a guide on how to install on a Apple ARM machine.
+
+
 To install the library run
 ```
 poetry install
 ```
 in a terminal at the root of the repo
 
-### Mac OS
-The following is not tested with continuous integration, but it worked in the past...
-Prerequisite: Install miniforge with brew `brew install miniforge` (uninstall anaconda first if necessary)
+### Installation Apple Silicon
+The following is not tested with continuous integration.
+
+(Optional) We recommend installing a virtual env. For example using `anaconda`, we create a virtual env named `gprd` using Python 3.8 as follows:
 ```
-conda create -n gprd
+conda create -n gprd python=3.8
 conda activate gprd
-conda install python=3.8
-conda install gpflow pytest jupyterlab
 ```
-If importing gpflow in a python interpreter fails, try re-installing tensorflow
+From now on, run all commands in the virtual env.
+
+Install runtime and development dependencies:
 ```
-conda install -c apple tensorflow-deps
-pip install tensorflow-macos
+python -m pip install -r requirements.txt dev_requirments.txt
 ```
 
 ## Development
