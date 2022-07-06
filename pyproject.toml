@@ -9,6 +9,7 @@ license = "Apache 2.0"
 [tool.poetry.dependencies]
 python = "~3.8"
 gpflow = "^2.5.2"
+gpflow = { git = "https://github.com/GPflow/GPflow.git@develop", branch = "develop" }
 gpflux = "^0.2.3"
 matplotlib = "^3.3.3"
 tensorflow-probability = "<=0.13"
