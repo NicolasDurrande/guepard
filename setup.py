@@ -7,7 +7,7 @@ test_requirements = ["pytest"]
 setup(
     author="Nicolas Durrande",
     author_email="nicolas@shiftlab.ai",
-    python_requires='>=3.7',
+    python_requires='3.8',
     description="Gaussian Process Model Aggregation using Implicit Observations",
     license="Apache 2",
     include_package_data=True,

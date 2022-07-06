@@ -1,3 +1,4 @@
+setuptools
 gpflow
 tensorflow==2.8.*
 tensorflow-probability<=0.13.0

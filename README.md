@@ -10,7 +10,7 @@ Guepard aims at building faster Gaussian process models by constructing and aggr
 
 ### Using poetry (recommended)
 
-> **_NOTE:_**  :exclamation: The poetry-based setup does *not* work on the new Apple Silicon devices. See [Installation Apple Silicon](#Installation-Apple-Silicon) for a guide on how to install on a Apple ARM machine.
+> **_NOTE:_**  :exclamation: The poetry-based setup does *not* work on the new Apple Silicon devices. See [Installation Apple Silicon](#Installation-Apple-Silicon) for a guide on how to install on a Apple ARM machine. :exclamation:
 
 
 To install the library run
@@ -31,16 +31,16 @@ From now on, run all commands in the virtual env.
 
 Install runtime and development dependencies:
 ```
-python -m pip install -r requirements.txt dev_requirments.txt
+make install
 ```
 
 ## Development
-The project uses *black* and *flake8* for code formating:
+The project uses *black*, *isort*, and *flake8* for code formating and linting
 ```
-poetry run task check
-poetry run task format
+make format
 ```
 and it uses *pytest* for testing
 ```
-poetry run task test
+make check
+make test
 ```

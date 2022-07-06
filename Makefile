@@ -1,9 +1,7 @@
 .PHONY: help install format check test
 
-LIB_NAME = gpflux
+LIB_NAME = guepard
 TESTS_NAME = tests
-
-LINT_NAMES = $(LIB_NAME) $(TESTS_NAME) notebooks
 
 
 help: ## Shows this help message
@@ -13,25 +11,21 @@ help: ## Shows this help message
 
 install:  ## Install repo for developement
 	@echo "\n=== pip install package with dev requirements =============="
-	pip install 
-		-r notebook_requirements.txt \
-		-r tests_requirements.txt \
-		tensorflow${VERSION_TF} \
-		keras${VERSION_KERAS} \
-		tensorflow-probability${VERSION_TFP} \
-		-e .
+	pip install -r requirements.txt -r dev_requirements.txt -e .
 
 
 format: ## Formats code with `black` and `isort`
+	@echo "\n=== Lint =============================================="
+	autoflake --remove-all-unused-imports --recursive --remove-unused-variables --in-place --exclude=__init__.py $(LIB_NAME) $(TESTS_NAME)
 	@echo "\n=== isort =============================================="
-	isort .
+	black $(LIB_NAME) $(TESTS_NAME)
 	@echo "\n=== black =============================================="
-	black --line-length=100 $(LINT_NAMES)
+	black $(LIB_NAME) $(TESTS_NAME)
 
 
 check: ## Runs all static checks such as code formatting checks, linting, mypy
 	@echo "\n=== flake8 (linting)===================================="
-	flake8 --statistics --exclude=.ipynb_checkpoints $(LINT_NAMES)
+	flake8 --statistics --exclude=.ipynb_checkpoints $(LIB_NAME) $(TESTS_NAME)
 	@echo "\n=== black (formatting) ================================="
 	black --check --diff $(LIB_NAME) $(TESTS_NAME)
 	@echo "\n=== mypy (static type checking) ========================"
