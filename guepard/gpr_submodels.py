@@ -11,7 +11,7 @@ def get_gpr_submodels(
     kernel: Kernel,
     mean_function: Optional[MeanFunction] = None,
     noise_variance: float = 0.1,
-) -> GPR:
+) -> List[GPR]:
     """
     Helper function to build a list of GPflow GPR submodels from a list of datasets, a GP prior and a likelihood variance.
     """
