@@ -12,6 +12,7 @@ from guepard.sparse import SparsePapl, get_svgp_submodels
 class CONSTS:
     noise_var = 0.1
     num_splits = 3
+    num_inducing = 2
 
 
 @pytest.fixture
@@ -31,7 +32,7 @@ def _fixture_submodels(data):
     x_list = np.array_split(X, ns)  # list of num_split np.array
     y_list = np.array_split(Y, ns)
     kernel = gpflow.kernels.Matern32()
-    num_inducing_list = [3] * ns
+    num_inducing_list = [CONSTS.num_inducing] * ns
     data_list = list(zip(x_list, y_list))
     models = get_svgp_submodels(
         data_list,
@@ -43,6 +44,7 @@ def _fixture_submodels(data):
     return models
 
 
-def test_init_sparsepapl(submodels):
+def test_sparsepapl(submodels):
     m = SparsePapl(submodels)
     ensemble = m.get_ensemble_svgp()
+    assert len(ensemble.inducing_variable) == (CONSTS.num_splits * CONSTS.num_inducing)

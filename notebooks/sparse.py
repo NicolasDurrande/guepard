@@ -85,6 +85,8 @@ fig, axes = plt.subplots(1, 3, figsize=(16, 4))
 x_plot = np.linspace(-1.25, 1.25, 101)[:, None]
 [plot_model(model, data, x=x_plot, ax=axes[i]) for i, (model, data) in enumerate(zip(models, data_list))];
 [axes[i].plot(X, Y, 'kx', mew=1., alpha=.1) for i, _ in enumerate(models)];
+plt.tight_layout()
+plt.savefig("toy_submodels_sparse.pdf")
 # %%
 
 
@@ -93,6 +95,8 @@ ensemble = papl.get_ensemble_svgp()
 
 ax = plot_model(ensemble, (X, Y), x=x_plot)
 ax.set_title("ELBO: {:.2f}".format(ensemble.elbo((X, Y))))
+plt.tight_layout()
+plt.savefig("agg_sparse_init.pdf")
 # %%
 
 gpflow.optimizers.scipy.Scipy().minimize(
@@ -104,4 +108,6 @@ gpflow.optimizers.scipy.Scipy().minimize(
 
 ax = plot_model(ensemble, (X, Y), x=x_plot)
 ax.set_title("ELBO: {:.2f}".format(ensemble.elbo((X, Y))))
+plt.tight_layout()
+plt.savefig("agg_sparse.pdf")
 # %%

@@ -66,6 +66,7 @@ class Papl(abc.ABC, Generic[SubModelType]):
         """
         raise NotImplementedError
 
+    # TODO: better name?
     def predict_foo(self, Xnew: InputData) -> MeanAndVariance:
         """
         Prediction method based on the aggregation of multivariate submodel predictions.
