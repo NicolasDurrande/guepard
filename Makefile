@@ -30,8 +30,6 @@ check: ## Runs all static checks such as code formatting checks, linting, mypy
 	black --check --diff $(LIB_NAME) $(TESTS_NAME)
 	@echo "\n=== isort (imports) ===================================="
 	isort --check --diff .
-	@echo "\n=== mypy (static type checking) ========================"
-	mypy --disallow-untyped-defs $(LIB_NAME) && mypy --allow-untyped-defs $(TESTS_NAME)
 
 test: ## Run unit and integration tests with pytest
 	pytest -v -x --ff -rN -Wignore -s --tb=short --durations=10 $(TESTS_NAME)
