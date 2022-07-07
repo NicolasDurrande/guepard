@@ -1,18 +1,13 @@
 from typing import List, Optional
 
 import gpflow
-import numpy as np
-import tensorflow as tf
 from scipy.cluster.vq import kmeans
 
-from gpflow.base import InputData, MeanAndVariance, RegressionData
+from gpflow.base import RegressionData
 from gpflow.models import GPModel, SVGP
 from gpflow.mean_functions import MeanFunction
 from gpflow.kernels import Kernel
-from gpflow.inducing_variables.inducing_variables import InducingPoints
 
-
-from .papl import PAPL
 
 jitter = gpflow.config.default_jitter()
 
@@ -27,7 +22,9 @@ def get_svgp_submodels(
     """
     Helper function to build a list of GPflow SVGP submodels from a list of datasets, a GP prior and a likelihood variance.
     """
-    assert len(data_list) == len(num_inducing_list), "Please specify equal number of inducing points configs as number of datasets passed."
+    assert len(data_list) == len(
+        num_inducing_list
+    ), "Please specify equal number of inducing points configs as number of datasets passed."
     if mean_function is None:
         mean_function = gpflow.mean_functions.Zero()
 
@@ -42,7 +39,7 @@ def get_svgp_submodels(
             likelihood=likelihood,
             inducing_variable=gpflow.inducing_variables.InducingPoints(centroids),
             mean_function=mean_function,
-            whiten=False
+            whiten=False,
         )
         gpflow.optimizers.scipy.Scipy().minimize(
             submodel.training_loss_closure(data),
@@ -51,9 +48,10 @@ def get_svgp_submodels(
         )
         return submodel
 
-    models = [_create_submodel(data, M) for data, M in zip(data_list, num_inducing_list)]
+    models = [
+        _create_submodel(data, M) for data, M in zip(data_list, num_inducing_list)
+    ]
     return models
-
 
 
 class SparsePapl(GPModel):
