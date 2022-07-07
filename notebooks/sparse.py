@@ -1,11 +1,12 @@
 # %%
+import matplotlib.pyplot as plt
 import numpy as np
+
 import gpflow
 
-import matplotlib.pyplot as plt
-
 import guepard
-from guepard.sparse import get_svgp_submodels, SparsePapl
+from guepard.sparse import SparsePapl, get_svgp_submodels
+
 # %%
 noise_var = 0.01
 

@@ -1,8 +1,9 @@
 from typing import Any, List, Optional, Type
 
-import gpflow
 import numpy as np
 import tensorflow as tf
+
+import gpflow
 from gpflow.base import InputData, MeanAndVariance, RegressionData
 from gpflow.kernels import Kernel
 from gpflow.mean_functions import MeanFunction

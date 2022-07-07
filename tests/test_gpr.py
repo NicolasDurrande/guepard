@@ -1,6 +1,7 @@
-import gpflow
 import numpy as np
 import pytest
+
+import gpflow
 
 from guepard import GprPapl, get_gpr_submodels
 

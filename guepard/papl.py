@@ -2,6 +2,7 @@ import abc
 from typing import Any, Generic, List, Type, TypeVar
 
 import tensorflow as tf
+
 from gpflow.models import GPModel
 
 SubModelType = TypeVar("SubModelType", bound=GPModel)

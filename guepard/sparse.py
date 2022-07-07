@@ -1,13 +1,14 @@
 from typing import Any, List, Optional, Type
 
-import gpflow
 import tensorflow as tf
+from scipy.cluster.vq import kmeans
+
+import gpflow
 from gpflow.base import InputData, MeanAndVariance, RegressionData
 from gpflow.experimental.check_shapes import check_shape
 from gpflow.kernels import Kernel
 from gpflow.mean_functions import MeanFunction
 from gpflow.models import SVGP
-from scipy.cluster.vq import kmeans
 
 from .papl import Papl
 

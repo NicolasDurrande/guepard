@@ -18,7 +18,7 @@ format: ## Formats code with `black` and `isort`
 	@echo "\n=== Lint =============================================="
 	autoflake --remove-all-unused-imports --recursive --remove-unused-variables --in-place --exclude=__init__.py $(LIB_NAME) $(TESTS_NAME)
 	@echo "\n=== isort =============================================="
-	isort $(LIB_NAME) $(TESTS_NAME)
+	isort .
 	@echo "\n=== black =============================================="
 	black $(LIB_NAME) $(TESTS_NAME)
 
@@ -29,7 +29,7 @@ check: ## Runs all static checks such as code formatting checks, linting, mypy
 	@echo "\n=== black (formatting) ================================="
 	black --check --diff $(LIB_NAME) $(TESTS_NAME)
 	@echo "\n=== isort (imports) ===================================="
-	isort --check --diff $(LIB_NAME) $(TESTS_NAME)
+	isort --check --diff .
 	@echo "\n=== mypy (static type checking) ========================"
 	mypy --disallow-untyped-defs $(LIB_NAME) && mypy --allow-untyped-defs $(TESTS_NAME)
 
