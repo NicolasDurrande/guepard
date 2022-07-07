@@ -21,9 +21,12 @@ def get_svgp_submodels(
     kernel: Kernel,
     mean_function: Optional[MeanFunction] = None,
     noise_variance: float = 0.1,
+    maxiter: int = 100,
 ) -> List[SVGP]:
     """
     Helper function to build a list of GPflow SVGP submodels from a list of datasets, a GP prior and a likelihood variance.
+
+    :param maxiter: number of training iterations. If set to -1, no training will occur.
     """
     assert len(data_list) == len(
         num_inducing_list
@@ -44,11 +47,12 @@ def get_svgp_submodels(
             mean_function=mean_function,
             whiten=False,
         )
-        gpflow.optimizers.scipy.Scipy().minimize(
-            submodel.training_loss_closure(data),
-            submodel.trainable_variables,
-            options={"disp": False, "maxiter": 500},
-        )
+        if maxiter > 0:
+            gpflow.optimizers.scipy.Scipy().minimize(
+                submodel.training_loss_closure(data),
+                submodel.trainable_variables,
+                options={"disp": False, "maxiter": maxiter},
+            )
         return submodel
 
     models = [
@@ -74,6 +78,7 @@ class SparsePapl(Papl[SVGP]):
             tf.concat(values=[m.inducing_variable.Z for m in self.models], axis=0),
             "[M, D]",
         )
+        print(Z)
 
     def predict_f(
         self, Xnew: InputData, full_cov: bool = False, full_output_cov: bool = False
