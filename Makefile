@@ -18,7 +18,7 @@ format: ## Formats code with `black` and `isort`
 	@echo "\n=== Lint =============================================="
 	autoflake --remove-all-unused-imports --recursive --remove-unused-variables --in-place --exclude=__init__.py $(LIB_NAME) $(TESTS_NAME)
 	@echo "\n=== isort =============================================="
-	black $(LIB_NAME) $(TESTS_NAME)
+	isort .
 	@echo "\n=== black =============================================="
 	black $(LIB_NAME) $(TESTS_NAME)
 
@@ -28,8 +28,10 @@ check: ## Runs all static checks such as code formatting checks, linting, mypy
 	flake8 --statistics --exclude=.ipynb_checkpoints $(LIB_NAME) $(TESTS_NAME)
 	@echo "\n=== black (formatting) ================================="
 	black --check --diff $(LIB_NAME) $(TESTS_NAME)
+	@echo "\n=== isort (imports) ===================================="
+	isort --check --diff .
 	@echo "\n=== mypy (static type checking) ========================"
-	isort --check --diff $(LIB_NAME) $(TESTS_NAME)
+	mypy --disallow-untyped-defs $(LIB_NAME) && mypy --allow-untyped-defs $(TESTS_NAME)
 
 test: ## Run unit and integration tests with pytest
 	pytest -v -x --ff -rN -Wignore -s --tb=short --durations=10 $(TESTS_NAME)
