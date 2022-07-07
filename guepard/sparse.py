@@ -30,7 +30,7 @@ def get_svgp_submodels(
 
     likelihood = gpflow.likelihoods.Gaussian(variance=noise_variance)
 
-    def _create_submodel(data, num_inducing):
+    def _create_submodel(data: RegressionData, num_inducing: int) -> SVGP:
         num_data = len(data[0])
         centroids, _ = kmeans(data[0], min(num_data, num_inducing))
         print(centroids)
@@ -60,7 +60,7 @@ class SparsePapl(Papl[SVGP]):
     def _model_class(self) -> Type[SVGP]:
         return SVGP
 
-    def init_aggregate_inducing_variable(self):
+    def init_aggregate_inducing_variable(self) -> None:
         pass
         # self.models[0].
         # Z = tf.concat([
