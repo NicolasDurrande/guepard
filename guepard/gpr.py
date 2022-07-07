@@ -1,6 +1,5 @@
 from typing import Any, List, Optional, Type
 
-import numpy as np
 import tensorflow as tf
 
 import gpflow
@@ -34,9 +33,6 @@ def get_gpr_submodels(
 
 class GprPapl(Papl[GPR]):
     """PAPL with GPR submodels"""
-
-    def __init__(self, models: List[GPR]):
-        super().__init__(models)
 
     def _model_class(self) -> Type[GPR]:
         return GPR
@@ -83,42 +79,7 @@ class GprPapl(Papl[GPR]):
         :param full_cov: Wether or not to return the full posterior covariance matrix.
         :param full_output_cov: unused
         """
-        # prior distribution
-        mp = self.models[0].mean_function(Xnew)[None, :, :]  # [1, N, L]
-        vp = self.models[0].kernel.K(Xnew)[None, None, :, :]  # [1, L, N, N]
-
-        # expert distributions
-        preds = [m.predict_f(Xnew, full_cov=True) for m in self.models]
-        Me = tf.concat([pred[0][None, :, :] for pred in preds], axis=0)  # [P, N, L]
-        Ve = tf.concat(
-            [pred[1][None, :, :, :] for pred in preds], axis=0
-        )  # [P, L, N, N]
-
-        # equivalent pseudo observations that would turn
-        # the prior at Xnew into the expert posterior at Xnew
-        Jitter = jitter * np.eye(Xnew.shape[0])[None, None, :, :]
-        pseudo_noise = vp @ tf.linalg.inv(vp - Ve + Jitter) @ vp - vp
-        # pseudo_noise = vp @ tf.linalg.inv(vp - Ve ) @ Ve
-        # pseudo_noise = tf.linalg.inv(tf.linalg.inv(vp) - tf.linalg.inv(Ve))
-        pseudo_y = (
-            mp
-            + vp
-            @ tf.linalg.inv(vp - Ve + Jitter)
-            @ tf.transpose(Me - mp, (0, 2, 1))[:, :, :, None]
-        )  # [P, L, N, 1]
-        # pseudo_y = mp + pseudo_noise @ tf.linalg.inv(Ve) @ (Me - mp)
-
-        # print(np.max(np.abs(pseudo_noise - pseudo_noise_old)))
-        # prediction
-        var = tf.linalg.inv(
-            tf.linalg.inv(vp[0, :, :])
-            + tf.reduce_sum(tf.linalg.inv(pseudo_noise), axis=0)
-        )
-        mean = var @ (
-            tf.linalg.inv(vp[0, :, :]) @ mp[0, :, :]
-            + tf.reduce_sum(tf.linalg.inv(pseudo_noise) @ pseudo_y, axis=0)
-        )
-        return tf.transpose(mean[:, :, 0]), var
+        return self.predict_foo(Xnew)
 
     def maximum_log_likelihood_objective(self, *args: Any, **kwargs: Any) -> tf.Tensor:
         objectives = [m.maximum_log_likelihood_objective() for m in self.models]

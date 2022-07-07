@@ -1,6 +1,5 @@
 from typing import List, Optional, Type
 
-import numpy as np
 import tensorflow as tf
 from scipy.cluster.vq import kmeans
 
@@ -40,11 +39,13 @@ def get_svgp_submodels(
     def _create_submodel(data: RegressionData, num_inducing: int) -> SVGP:
         num_data = len(data[0])
         centroids, _ = kmeans(data[0], min(num_data, num_inducing))
+        inducing_variable = gpflow.inducing_variables.InducingPoints(centroids)
+        gpflow.set_trainable(inducing_variable, False)
         print(centroids)
         submodel = SVGP(
             kernel=kernel,
             likelihood=likelihood,
-            inducing_variable=gpflow.inducing_variables.InducingPoints(centroids),
+            inducing_variable=inducing_variable,
             mean_function=mean_function,
             whiten=False,
         )
@@ -65,27 +66,34 @@ def get_svgp_submodels(
 class SparsePapl(Papl[SVGP]):
     """PAPL with SVGP submodels"""
 
+    def _model_class(self) -> Type[SVGP]:
+        return SVGP
+
+    @check_shapes()
     def get_ensemble_svgp(self) -> SVGP:
-        total_num_inducing = sum((len(m.inducing_variable) for m in self.models))
-        input_dim = self.models[0].inducing_variable.Z.shape[-1]
-        Z = np.random.randn(total_num_inducing, input_dim)
+        # total_num_inducing = sum((len(m.inducing_variable) for m in self.models))
+        # input_dim = self.models[0].inducing_variable.Z.shape[-1]
+        Z = check_shape(
+            tf.concat(values=[m.inducing_variable.Z for m in self.models], axis=0),
+            "[M, D]",
+        )
         iv = gpflow.inducing_variables.InducingPoints(Z)
+        q_mu, q_sqrt = self.predict_foo(Z)
         return SVGP(
             self.models[0].kernel,
             self.models[0].likelihood,
             inducing_variable=iv,
             mean_function=self.models[0].mean_function,
+            q_mu=q_mu,
+            q_sqrt=q_sqrt,
             whiten=False,
         )
 
-    def _model_class(self) -> Type[SVGP]:
-        return SVGP
-
-    def training_loss_submodels(self, data: RegressionData) -> tf.Tensor:  # type: ignore
+    def training_loss_submodels(self, data: List[RegressionData]) -> tf.Tensor:  # type: ignore
         """
         Objective used to train the submodels
         """
-        objectives = [m.training_loss(data) for m in self.models]
+        objectives = [m.training_loss(d) for m, d in zip(self.models, data)]
         return tf.reduce_sum(objectives)
 
     @check_shapes()

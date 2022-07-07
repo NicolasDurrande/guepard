@@ -1,10 +1,10 @@
 # %%
 import matplotlib.pyplot as plt
 import numpy as np
+import tensorflow as tf
 
 import gpflow
 
-import guepard
 from guepard.sparse import SparsePapl, get_svgp_submodels
 
 # %%
@@ -31,7 +31,20 @@ num_inducing_list = [3] * num_split
 
 # make submodels and aggregate them
 data_list = list(zip(x_list, y_list))
-models = get_svgp_submodels(data_list,num_inducing_list, kernel, noise_variance=noise_var) # list of num_split GPR models
+models = get_svgp_submodels(data_list,num_inducing_list, kernel, noise_variance=noise_var, maxiter=-1) # list of num_split GPR models
+papl = SparsePapl(models)
+# %%
+print(papl.trainable_variables)
+# %%
+
+submodels_training_closure = tf.function(lambda: papl.training_loss_submodels(data_list))
+print(submodels_training_closure())
+gpflow.optimizers.scipy.Scipy().minimize(
+    submodels_training_closure,
+    papl.trainable_variables,
+    options={"disp": True, "maxiter": 100},
+)
+
 # %%
 # define plotting helper functions
 
@@ -67,8 +80,28 @@ def plot_model(model: gpflow.models.SVGP, data, x=np.linspace(0, 1, 101)[:, None
     return ax
     
 # plot predictions
+models = papl.models
 fig, axes = plt.subplots(1, 3, figsize=(16, 4))
 x_plot = np.linspace(-1.25, 1.25, 101)[:, None]
 [plot_model(model, data, x=x_plot, ax=axes[i]) for i, (model, data) in enumerate(zip(models, data_list))];
 [axes[i].plot(X, Y, 'kx', mew=1., alpha=.1) for i, _ in enumerate(models)];
+# %%
+
+
+ensemble = papl.get_ensemble_svgp()
+# %%
+
+ax = plot_model(ensemble, (X, Y), x=x_plot)
+ax.set_title("ELBO: {:.2f}".format(ensemble.elbo((X, Y))))
+# %%
+
+gpflow.optimizers.scipy.Scipy().minimize(
+    ensemble.training_loss_closure((X, Y)),
+    ensemble.trainable_variables,
+    options={"disp": True, "maxiter": 100},
+)
+# %%
+
+ax = plot_model(ensemble, (X, Y), x=x_plot)
+ax.set_title("ELBO: {:.2f}".format(ensemble.elbo((X, Y))))
 # %%
