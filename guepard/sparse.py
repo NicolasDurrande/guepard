@@ -1,7 +1,9 @@
-from typing import List, Optional, Type
+from typing import Any, List, Optional, Type
 
 import gpflow
-from gpflow.base import RegressionData
+import tensorflow as tf
+from gpflow.base import InputData, MeanAndVariance, RegressionData
+from gpflow.experimental.check_shapes import check_shape
 from gpflow.kernels import Kernel
 from gpflow.mean_functions import MeanFunction
 from gpflow.models import SVGP
@@ -60,9 +62,19 @@ class SparsePapl(Papl[SVGP]):
     def _model_class(self) -> Type[SVGP]:
         return SVGP
 
+    def maximum_log_likelihood_objective(self, *args: Any, **kwargs: Any) -> tf.Tensor:
+        raise NotImplementedError
+
+    def training_loss(self, *args: Any, **kwargs: Any) -> tf.Tensor:
+        raise NotImplementedError
+
     def init_aggregate_inducing_variable(self) -> None:
+        Z = check_shape(
+            tf.concat(values=[m.inducing_variable.Z for m in self.models], axis=0),
+            "[M, D]",
+        )
+
+    def predict_f(
+        self, Xnew: InputData, full_cov: bool = False, full_output_cov: bool = False
+    ) -> MeanAndVariance:
         pass
-        # self.models[0].
-        # Z = tf.concat([
-        #     model.in for model in self.models
-        # ])

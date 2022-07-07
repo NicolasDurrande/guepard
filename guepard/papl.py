@@ -1,6 +1,7 @@
 import abc
-from typing import Generic, List, Type, TypeVar
+from typing import Any, Generic, List, Type, TypeVar
 
+import tensorflow as tf
 from gpflow.models import GPModel
 
 SubModelType = TypeVar("SubModelType", bound=GPModel)
@@ -42,6 +43,12 @@ class Papl(abc.ABC, GPModel, Generic[SubModelType]):
             models[0].num_latent_gps,
         )
         self.models: List[SubModelType] = models
+
+    def maximum_log_likelihood_objective(self, *args: Any, **kwargs: Any) -> tf.Tensor:
+        raise NotImplementedError
+
+    def training_loss(self, *args: Any, **kwargs: Any) -> tf.Tensor:
+        raise NotImplementedError
 
     @abc.abstractmethod
     def _model_class(self) -> Type[SubModelType]:
