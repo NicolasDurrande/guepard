@@ -8,7 +8,7 @@ from gpflow.models import GPModel
 SubModelType = TypeVar("SubModelType", bound=GPModel)
 
 
-class Papl(abc.ABC, GPModel, Generic[SubModelType]):
+class Papl(abc.ABC, Generic[SubModelType]):
     """
     Posterior Aggregation with Pseudo-Likelihood: Base class for merging submodels using the pseudo-likelihood method.
     """
@@ -36,26 +36,20 @@ class Papl(abc.ABC, GPModel, Generic[SubModelType]):
                 model.num_latent_gps == models[0].num_latent_gps
             ), "All submodels must have the same number of latent GPs"
 
-        # initialise with parent class
-        super().__init__(
-            models[0].kernel,
-            models[0].likelihood,
-            models[0].mean_function,
-            models[0].num_latent_gps,
-        )
         self.models: List[SubModelType] = models
 
-    def maximum_log_likelihood_objective(self, *args: Any, **kwargs: Any) -> tf.Tensor:
-        raise NotImplementedError
-
-    def training_loss(self, *args: Any, **kwargs: Any) -> tf.Tensor:
+    @abc.abstractmethod
+    def training_loss_submodels(self, *args: Any) -> tf.Tensor:
+        """
+        Objective used to train the submodels
+        """
         raise NotImplementedError
 
     @abc.abstractmethod
     def _model_class(self) -> Type[SubModelType]:
         """
         Annoyingly, `SubModelType` is not available at runtime.
-        By declaring it specificalyy in each subclass we can add
+        By declaring it specificaly in each subclass we can add
         this runtime check to the __init__.
 
         TODO: This feature will be available in the a near future release of Python -

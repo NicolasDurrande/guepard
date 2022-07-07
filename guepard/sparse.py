@@ -1,11 +1,12 @@
-from typing import Any, List, Optional, Type
+from typing import List, Optional, Type
 
+import numpy as np
 import tensorflow as tf
 from scipy.cluster.vq import kmeans
 
 import gpflow
-from gpflow.base import InputData, MeanAndVariance, RegressionData
-from gpflow.experimental.check_shapes import check_shape
+from gpflow.base import RegressionData
+from gpflow.experimental.check_shapes import check_shape, check_shapes
 from gpflow.kernels import Kernel
 from gpflow.mean_functions import MeanFunction
 from gpflow.models import SVGP
@@ -64,23 +65,33 @@ def get_svgp_submodels(
 class SparsePapl(Papl[SVGP]):
     """PAPL with SVGP submodels"""
 
+    def get_ensemble_svgp(self) -> SVGP:
+        total_num_inducing = sum((len(m.inducing_variable) for m in self.models))
+        input_dim = self.models[0].inducing_variable.Z.shape[-1]
+        Z = np.random.randn(total_num_inducing, input_dim)
+        iv = gpflow.inducing_variables.InducingPoints(Z)
+        return SVGP(
+            self.models[0].kernel,
+            self.models[0].likelihood,
+            inducing_variable=iv,
+            mean_function=self.models[0].mean_function,
+            whiten=False,
+        )
+
     def _model_class(self) -> Type[SVGP]:
         return SVGP
 
-    def maximum_log_likelihood_objective(self, *args: Any, **kwargs: Any) -> tf.Tensor:
-        raise NotImplementedError
+    def training_loss_submodels(self, data: RegressionData) -> tf.Tensor:  # type: ignore
+        """
+        Objective used to train the submodels
+        """
+        objectives = [m.training_loss(data) for m in self.models]
+        return tf.reduce_sum(objectives)
 
-    def training_loss(self, *args: Any, **kwargs: Any) -> tf.Tensor:
-        raise NotImplementedError
-
+    @check_shapes()
     def init_aggregate_inducing_variable(self) -> None:
         Z = check_shape(
             tf.concat(values=[m.inducing_variable.Z for m in self.models], axis=0),
             "[M, D]",
         )
         print(Z)
-
-    def predict_f(
-        self, Xnew: InputData, full_cov: bool = False, full_output_cov: bool = False
-    ) -> MeanAndVariance:
-        pass

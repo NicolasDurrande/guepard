@@ -18,8 +18,7 @@ def test_get_gpr_submodels():
 
     assert (
         len(M) == 3
-    ), "The length of the model list isn't equal to the length of\
-        the data list"
+    ), "The length of the model list isn't equal to the length of the data list"
 
     # smoke test on model prediction
     M[1].predict_f(np.random.uniform(np.random.uniform(size=(3, 2))))

@@ -35,6 +35,9 @@ def get_gpr_submodels(
 class GprPapl(Papl[GPR]):
     """PAPL with GPR submodels"""
 
+    def __init__(self, models: List[GPR]):
+        super().__init__(models)
+
     def _model_class(self) -> Type[GPR]:
         return GPR
 
@@ -47,8 +50,8 @@ class GprPapl(Papl[GPR]):
         where we want to make prediction.
         """
         # prior predictions
-        mp = self.mean_function(Xnew)[:, :, None]  # shape is [n, 1, 1]
-        vp = self.kernel.K_diag(Xnew)[:, None, None]  # [n, 1, 1]
+        mp = self.models[0].mean_function(Xnew)[:, :, None]  # shape is [n, 1, 1]
+        vp = self.models[0].kernel.K_diag(Xnew)[:, None, None]  # [n, 1, 1]
 
         # submodel predictons
         preds = [m.predict_f(Xnew) for m in self.models]
@@ -81,8 +84,8 @@ class GprPapl(Papl[GPR]):
         :param full_output_cov: unused
         """
         # prior distribution
-        mp = self.mean_function(Xnew)[None, :, :]  # [1, N, L]
-        vp = self.kernel.K(Xnew)[None, None, :, :]  # [1, L, N, N]
+        mp = self.models[0].mean_function(Xnew)[None, :, :]  # [1, N, L]
+        vp = self.models[0].kernel.K(Xnew)[None, None, :, :]  # [1, L, N, N]
 
         # expert distributions
         preds = [m.predict_f(Xnew, full_cov=True) for m in self.models]
@@ -121,5 +124,5 @@ class GprPapl(Papl[GPR]):
         objectives = [m.maximum_log_likelihood_objective() for m in self.models]
         return tf.reduce_sum(objectives)
 
-    def training_loss(self, *args: Any, **kwargs: Any) -> tf.Tensor:
+    def training_loss_submodels(self, *args: Any, **kwargs: Any) -> tf.Tensor:
         return -self.maximum_log_likelihood_objective()
