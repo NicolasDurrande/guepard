@@ -1,13 +1,13 @@
-from typing import List, Optional
+from typing import List, Optional, Type
 
 import gpflow
+from gpflow.base import RegressionData
+from gpflow.kernels import Kernel
+from gpflow.mean_functions import MeanFunction
+from gpflow.models import SVGP
 from scipy.cluster.vq import kmeans
 
-from gpflow.base import RegressionData
-from gpflow.models import GPModel, SVGP
-from gpflow.mean_functions import MeanFunction
-from gpflow.kernels import Kernel
-
+from .papl import Papl
 
 jitter = gpflow.config.default_jitter()
 
@@ -54,17 +54,15 @@ def get_svgp_submodels(
     return models
 
 
-class SparsePapl(GPModel):
-    """
-    Posterior Aggregation with Pseudo-Likelihood: merging submodels using the pseudo-likelihood method.
+class SparsePapl(Papl[SVGP]):
+    """PAPL with SVGP submodels"""
 
-    The underlying submodels are Sparse Variational GPs (SVGPs).
-    """
+    def _model_class(self) -> Type[SVGP]:
+        return SVGP
 
-    def __init__(self, models: List[SVGP]):
-        """
-        :param models: A list of GPflow `SVGP` models with the same prior and likelihood.
-        """
-        # check that all models are a gpflow SVGP model
-        assert all([model.__class__ for model in models] == SVGP)
-        super().__init__(models)
+    def init_aggregate_inducing_variable(self):
+        pass
+        # self.models[0].
+        # Z = tf.concat([
+        #     model.in for model in self.models
+        # ])
