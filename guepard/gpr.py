@@ -9,7 +9,7 @@ from gpflow.mean_functions import MeanFunction
 from gpflow.models import GPR
 from gpflow.models.gpr import GPR
 
-from .papl import Papl
+from .base import GuepardBase
 
 jitter = gpflow.config.default_jitter()
 
@@ -31,7 +31,7 @@ def get_gpr_submodels(
     return models
 
 
-class GprPapl(Papl[GPR]):
+class GprPapl(GuepardBase[GPR]):
     """PAPL with GPR submodels"""
 
     def _model_class(self) -> Type[GPR]:

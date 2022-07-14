@@ -5,7 +5,7 @@ import pytest
 
 import gpflow
 
-from guepard.sparse import SparsePapl, get_svgp_submodels
+from guepard.sparse import SparseGuepard, get_svgp_submodels
 
 
 @dataclass(frozen=True)
@@ -45,6 +45,6 @@ def _fixture_submodels(data):
 
 
 def test_sparsepapl(submodels):
-    m = SparsePapl(submodels)
-    ensemble = m.get_ensemble_svgp()
-    assert len(ensemble.inducing_variable) == (CONSTS.num_splits * CONSTS.num_inducing)
+    m = SparseGuepard(submodels)
+    svgp = m.get_fully_parameterized_svgp()
+    assert len(svgp.inducing_variable) == (CONSTS.num_splits * CONSTS.num_inducing)

@@ -10,7 +10,7 @@ from gpflow.models import GPModel
 SubModelType = TypeVar("SubModelType", bound=GPModel)
 
 
-class Papl(abc.ABC, Generic[SubModelType]):
+class GuepardBase(abc.ABC, Generic[SubModelType]):
     """
     Posterior Aggregation with Pseudo-Likelihood: Base class for merging submodels using the pseudo-likelihood method.
     """
