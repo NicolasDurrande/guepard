@@ -7,17 +7,15 @@ authors = ["Nicolas Durrande"]
 license = "Apache 2.0"
 
 [tool.poetry.dependencies]
-python = "^3.8"
-gpflow = "^2.2.1"
+python = "~3.8"
+gpflow = { git = "https://github.com/GPflow/GPflow.git", branch = "develop" }
 gpflux = "^0.2.3"
 matplotlib = "^3.3.3"
-jupyterlab = "^3.3.1"
 tensorflow-probability = "<=0.13"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
-
 
 [tool.poetry.dev-dependencies]
 taskipy = "^1.2.0"
@@ -26,11 +24,13 @@ isort = "^5.10.1"
 autoflake = "^1.4"
 flake8 = "^4.0.1"
 pytest = "^7.0.1"
+jupyterlab = "^3.3.1"
+mypy = "^0.961"
 
 [tool.taskipy.tasks]
-format = "autoflake --remove-all-unused-imports --recursive --remove-unused-variables --in-place --exclude=__init__.py guepard tests && black guepard tests && isort guepard tests"
-check = "flake8 --statistics --exclude=.ipynb_checkpoints tests guepard && black --check --diff tests guepard && isort --check --diff tests guepard"
-test = "pytest -v -x --ff -rN -Wignore -s --tb=short --durations=10"
+format = "make format"
+check = "make check"
+test = "make test"
 
 [tool.black]
 line-length = 88
