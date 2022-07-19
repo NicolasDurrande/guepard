@@ -5,20 +5,22 @@
 # 
 # First, let's load some required packages
 
-# %%
-import numpy as np
 import gpflow
-import guepard
 import matplotlib.pyplot as plt
 
+# %%
+import numpy as np
 from gpflow.utilities import print_summary
+
+import guepard
 from guepard.gpr_submodels import get_gpr_submodels
 
 # The lines below are specific to the notebook format
 # %matplotlib inline
 plt.rcParams["figure.figsize"] = (12, 6)
 
-from IPython.core.display import display, HTML
+from IPython.core.display import HTML, display
+
 display(HTML("<style>div.output_scroll { height: 150em; }</style>"))
 
 # %% [markdown]

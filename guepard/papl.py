@@ -121,7 +121,7 @@ class PAPL(GPModel):
 
         if not full_cov:
             var = tf.transpose(tf.linalg.diag_part(var))
-            
+
         return tf.transpose(mean[:, :, 0]), var
 
     def maximum_log_likelihood_objective(self):
