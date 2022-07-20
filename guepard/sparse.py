@@ -140,7 +140,8 @@ class SparseGuepard(GuepardBase[SVGP], SVGP_deprecated):
             "[M, D]",
         )
         iv = gpflow.inducing_variables.InducingPoints(Z)
-        q_mu, q_sqrt = self.predict_foo(Z)
+        q_mu, q_sqrt = self.predict_foo(Z, full_cov=True)
+        # q_mu, q_sqrt = self.get_qmu_qsqrt() #TODO: this seems the right thing to do, but results in a Cholesky error...
         return SVGP(
             self.models[0].kernel,
             self.models[0].likelihood,

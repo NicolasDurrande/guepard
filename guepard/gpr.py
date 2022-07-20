@@ -79,7 +79,7 @@ class GprPapl(GuepardBase[GPR]):
         :param full_cov: Wether or not to return the full posterior covariance matrix.
         :param full_output_cov: unused
         """
-        return self.predict_foo(Xnew)
+        return self.predict_foo(Xnew, full_cov)
 
     def maximum_log_likelihood_objective(self, *args: Any, **kwargs: Any) -> tf.Tensor:
         objectives = [m.maximum_log_likelihood_objective() for m in self.models]

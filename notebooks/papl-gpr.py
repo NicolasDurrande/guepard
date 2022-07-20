@@ -5,11 +5,12 @@
 # 
 # First, let's load some required packages
 
-import gpflow
 import matplotlib.pyplot as plt
 
 # %%
 import numpy as np
+
+import gpflow
 from gpflow.utilities import print_summary
 
 import guepard
