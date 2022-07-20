@@ -1,23 +1,28 @@
-from typing import List
+import abc
+from typing import Any, Generic, List, Type, TypeVar
+
+import tensorflow as tf
 
 import gpflow
-import numpy as np
-import tensorflow as tf
 from gpflow.base import InputData, MeanAndVariance
 from gpflow.models import GPModel
 
-jitter = gpflow.config.default_jitter()
+SubModelType = TypeVar("SubModelType", bound=GPModel)
 
 
-class PAPL(GPModel):
+class GuepardBase(abc.ABC, Generic[SubModelType]):
     """
     Posterior Aggregation with Pseudo-Likelihood: Base class for merging submodels using the pseudo-likelihood method.
     """
 
-    def __init__(self, models: List[GPModel]):
+    def __init__(self, models: List[SubModelType]):
         """
         :param models: A list of GPflow models with the same prior and likelihood.
         """
+        # check that all models are of the same type (e.g., GPR, SVGP)
+        assert all(
+            [model.__class__ == self._model_class() for model in models]
+        ), f"All submodels need to be of type '{self._model_class}'"
         # check that all models have the same prior
         for model in models[1:]:
             assert (
@@ -33,59 +38,46 @@ class PAPL(GPModel):
                 model.num_latent_gps == models[0].num_latent_gps
             ), "All submodels must have the same number of latent GPs"
 
-        # initialise with parent class
-        super().__init__(
-            models[0].kernel,
-            models[0].likelihood,
-            models[0].mean_function,
-            models[0].num_latent_gps,
-        )
-        self.models = models
+        self.models: List[SubModelType] = models
 
-    def predict_f_marginals(self, Xnew: InputData) -> MeanAndVariance:
+    @property
+    def trainable_variables(self):  # type: ignore
+        r = []
+        for model in self.models:
+            r += model.trainable_variables
+        return r
+
+    @abc.abstractmethod
+    def training_loss_submodels(self, *args: Any) -> tf.Tensor:
         """
-        Fastest method for aggregating marginal submodel predictions.
-        For more accurate predictions (but with higher computational cost
-        and possibly lower numerical stability), see `predict_f` method.
-        :param Xnew: 2D Array or tensor corresponding to points in the input
-        where we want to make prediction.
+        Objective used to train the submodels
         """
-        # prior predictions
-        mp = self.mean_function(Xnew)[:, :, None]  # shape is [n, 1, 1]
-        vp = self.kernel.K_diag(Xnew)[:, None, None]  # [n, 1, 1]
+        raise NotImplementedError
 
-        # submodel predictons
-        preds = [m.predict_f(Xnew) for m in self.models]
-        Me = tf.stack([pred[0] for pred in preds], axis=2)  # [n, latent, sub]
-        Ve = tf.stack([pred[1] for pred in preds], axis=2)
+    @abc.abstractmethod
+    def _model_class(self) -> Type[SubModelType]:
+        """
+        Annoyingly, `SubModelType` is not available at runtime.
+        By declaring it specificaly in each subclass we can add
+        this runtime check to the __init__.
 
-        # equivalent pseudo observations that would turn
-        # the prior at Xnew into the expert posterior at Xnew
-        pseudo_noise = vp * Ve / (vp - Ve + jitter)
-        pseudo_y = mp + vp / (vp - Ve + jitter) * (Me - mp)
+        TODO: This feature will be available in the a near future release of Python -
+        probably 3.12. This will make this class obsolete.
+        """
+        raise NotImplementedError
 
-        # prediction
-        var = 1 / (1 / vp[:, :, 0] + tf.reduce_sum(1 / pseudo_noise, axis=-1))
-        mean = var * (
-            mp[:, :, 0] / vp[:, :, 0] + tf.reduce_sum(pseudo_y / pseudo_noise, axis=-1)
-        )
-
-        return mean, var
-
-    def predict_f(self, Xnew: InputData, full_cov: bool = False) -> MeanAndVariance:
+    # TODO: better name?
+    def predict_foo(self, Xnew: InputData) -> MeanAndVariance:
         """
         Prediction method based on the aggregation of multivariate submodel predictions.
         For more faster predictions and possibly more numerically stable predictions
         (but with lower accuracy), see the `predict_f_marginals` method.
         :param Xnew: 2D Array or tensor corresponding to points in the input
         where we want to make prediction.
-        :param full_cov: Wether or not to return the full posterior covariance matrix.
         """
-        len(self.models)
-
         # prior distribution
-        mp = self.mean_function(Xnew)[None, :, :]  # [1, N, L]
-        vp = self.kernel.K(Xnew)[None, None, :, :]  # [1, L, N, N]
+        mp = self.models[0].mean_function(Xnew)[None, :, :]  # [1, N, L]
+        vp = self.models[0].kernel.K(Xnew)[None, None, :, :]  # [1, L, N, N]
 
         # expert distributions
         preds = [m.predict_f(Xnew, full_cov=True) for m in self.models]
@@ -96,7 +88,8 @@ class PAPL(GPModel):
 
         # equivalent pseudo observations that would turn
         # the prior at Xnew into the expert posterior at Xnew
-        Jitter = jitter * np.eye(Xnew.shape[0])[None, None, :, :]
+        jitter = gpflow.config.default_jitter()
+        Jitter = jitter * tf.eye(Xnew.shape[0], dtype=Me.dtype)[None, None, :, :]
         pseudo_noise = vp @ tf.linalg.inv(vp - Ve + Jitter) @ vp - vp
         # pseudo_noise = vp @ tf.linalg.inv(vp - Ve ) @ Ve
         # pseudo_noise = tf.linalg.inv(tf.linalg.inv(vp) - tf.linalg.inv(Ve))
@@ -123,10 +116,3 @@ class PAPL(GPModel):
             var = tf.transpose(tf.linalg.diag_part(var))
 
         return tf.transpose(mean[:, :, 0]), var
-
-    def maximum_log_likelihood_objective(self):
-        objectives = [m.maximum_log_likelihood_objective() for m in self.models]
-        return tf.reduce_sum(objectives)
-
-    def training_loss(self):
-        return -self.maximum_log_likelihood_objective()

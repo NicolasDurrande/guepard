@@ -38,3 +38,5 @@ target-version = ['py38']
 
 [tool.isort]
 profile = "black" 
+known_gpflow = "gpflow"
+sections = "FUTURE,STDLIB,THIRDPARTY,GPFLOW,FIRSTPARTY,LOCALFOLDER"
