@@ -2,20 +2,19 @@
 packages = [{include = "guepard", from = "."}]
 name = "guepard"
 version = "0.1.0"
-description = ""
-authors = ["Nicolas Durrande"]
+description = "Divide-and-Conquer Gaussian Process Ensemble Method"
+authors = ["Nicolas Durrande", "Vincent Dutordoir"]
 license = "Apache 2.0"
 
 [tool.poetry.dependencies]
-python = "~3.8"
+python = "^3.7,<3.11"
+tensorflow = {version = "2.8.*", markers = "platform_system!='Darwin' or platform_machine!='arm64'"}
+tensorflow-macos = {version = "2.8.*", markers = "platform_system=='Darwin' and platform_machine=='arm64'"}
 gpflow = { git = "https://github.com/GPflow/GPflow.git", branch = "develop" }
-gpflux = "^0.2.3"
 matplotlib = "^3.3.3"
 tensorflow-probability = "<=0.13"
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+protobuf = "3.19.0"
+gpflux = { git = "https://github.com/secondmind-labs/GPflux.git", branch = "develop" }
 
 [tool.poetry.dev-dependencies]
 taskipy = "^1.2.0"
@@ -40,3 +39,7 @@ target-version = ['py38']
 profile = "black" 
 known_gpflow = "gpflow"
 sections = "FUTURE,STDLIB,THIRDPARTY,GPFLOW,FIRSTPARTY,LOCALFOLDER"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
