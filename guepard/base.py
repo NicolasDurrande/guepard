@@ -67,7 +67,7 @@ class GuepardBase(abc.ABC, Generic[SubModelType]):
         raise NotImplementedError
 
     # TODO: better name?
-    def predict_foo(self, Xnew: InputData) -> MeanAndVariance:
+    def predict_foo(self, Xnew: InputData, full_cov: bool = False) -> MeanAndVariance:
         """
         Prediction method based on the aggregation of multivariate submodel predictions.
         For more faster predictions and possibly more numerically stable predictions
@@ -111,4 +111,8 @@ class GuepardBase(abc.ABC, Generic[SubModelType]):
             tf.linalg.inv(vp[0, :, :]) @ mp[0, :, :]
             + tf.reduce_sum(tf.linalg.inv(pseudo_noise) @ pseudo_y, axis=0)
         )
+
+        if not full_cov:
+            var = tf.transpose(tf.linalg.diag_part(var))
+
         return tf.transpose(mean[:, :, 0]), var
