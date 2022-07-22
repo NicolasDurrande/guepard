@@ -81,6 +81,7 @@ class GprPapl(GuepardBase[GPR]):
         """
         return self.predict_foo(Xnew, full_cov)
 
+
     def maximum_log_likelihood_objective(self, *args: Any, **kwargs: Any) -> tf.Tensor:
         objectives = [m.maximum_log_likelihood_objective() for m in self.models]
         return tf.reduce_sum(objectives)
