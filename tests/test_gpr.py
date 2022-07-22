@@ -118,7 +118,6 @@ def test_papl_predict_f(num_latent):
         err_msg="mismatch between the PALP predict_f variance shape and the GPflow convention",
     )
 
-
     # Check "good" match between aggregated model and gpr at training points
     mean_agg, var_agg = m_agg.predict_f(X, full_cov=True)
     mean_gpr, var_gpr = m_gpr.predict_f(X, full_cov=True)
