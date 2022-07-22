@@ -1,3 +1,0 @@
-setuptools
-git+https://github.com/GPflow/GPflow.git@develop
-tensorflow-probability<=0.13.0
