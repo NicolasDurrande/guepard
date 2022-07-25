@@ -8,7 +8,7 @@ jupytext:
     jupytext_version: 1.14.0
 ---
 
-# Title 1
+# Notebook
 
 ```{code-cell}
 print("Hello world!")

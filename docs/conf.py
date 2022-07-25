@@ -77,6 +77,22 @@ extensions = [
     'sphinx_copybutton',
 ]
 
+# autoapi
+# Sphinx AutoAPI provides "autodoc" style documentation for multiple programming languages without
+# needing to load, run, or import the project being documented.
+extensions.append("autoapi.extension")
+autoapi_dirs = ["../guepard"]
+autoapi_add_toctree_entry = True
+autoapi_keep_files = True
+autoapi_python_class_content = "both"
+autoapi_options = [
+    "members",
+    "private-members",
+    "special-members",
+    "imported-members",
+    "show-inheritance",
+]
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
