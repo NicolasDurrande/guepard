@@ -7,7 +7,7 @@ Build on top of GPflow_.
    :maxdepth: 1
    :caption: Getting Started
 
-   notebooks/howto
+   notebooks/merging_GP_submodels
 
 .. toctree::
    :maxdepth: 1
