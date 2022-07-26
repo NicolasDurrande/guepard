@@ -68,7 +68,7 @@ class GuepardBase(abc.ABC, Generic[SubModelType]):
 
     # TODO: better name?
     def predict_foo(
-        self, Xnew: InputData, full_cov: bool = False, full_output_cov=False
+        self, Xnew: InputData, full_cov: bool = False, full_output_cov: bool = False
     ) -> MeanAndVariance:
         """
         Prediction method based on the aggregation of multivariate submodel predictions.
