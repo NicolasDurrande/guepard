@@ -1,9 +1,9 @@
-name: QualityChecks
+name: Documentation
 
 on: [push]
 
 jobs:
-  check-and-test:
+  documentation:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -52,12 +52,12 @@ jobs:
     - name: Install library
       run: poetry install --no-interaction
       #----------------------------------------------
-      #              Checks: formatting, imports, linters
+      #              Install doc dependencies
       #----------------------------------------------
-    - name: Run tests
-      run: poetry run task check
+    - name: Install documentation dependencies
+      run: pip install -r docs/requirements.txt
       #----------------------------------------------
       #              run test suite
       #----------------------------------------------
     - name: Run tests
-      run: poetry run task test
+      run: poetry run task build-docs

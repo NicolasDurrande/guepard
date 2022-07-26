@@ -58,7 +58,7 @@ class GuepardBase(abc.ABC, Generic[SubModelType]):
     def _model_class(self) -> Type[SubModelType]:
         """
         Annoyingly, `SubModelType` is not available at runtime.
-        By declaring it specificaly in each subclass we can add
+        By declaring it specifically in each subclass we can add
         this runtime check to the __init__.
 
         TODO: This feature will be available in the a near future release of Python -
@@ -67,7 +67,9 @@ class GuepardBase(abc.ABC, Generic[SubModelType]):
         raise NotImplementedError
 
     # TODO: better name?
-    def predict_foo(self, Xnew: InputData, full_cov: bool = False) -> MeanAndVariance:
+    def predict_foo(
+        self, Xnew: InputData, full_cov: bool = False, full_output_cov: bool = False
+    ) -> MeanAndVariance:
         """
         Prediction method based on the aggregation of multivariate submodel predictions.
         For more faster predictions and possibly more numerically stable predictions

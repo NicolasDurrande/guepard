@@ -1,0 +1,17 @@
+sphinx >=3
+sphinx-autoapi
+sphinx-autodoc-typehints
+sphinx-book-theme
+sphinx-copybutton>=0.5.0
+sphinx-remove-toctrees
+jupyter-sphinx>=0.3.2
+myst-nb
+
+# Packages used for CI tests.
+pytest
+pytest-xdist
+
+# Packages used for notebook execution
+matplotlib
+scikit-learn
+numpy
