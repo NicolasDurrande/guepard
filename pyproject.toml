@@ -25,11 +25,14 @@ flake8 = "^4.0.1"
 pytest = "^7.0.1"
 jupyterlab = "^3.3.1"
 mypy = "^0.961"
+jupytext = "^1.14.0"
+pre-commit = "^2.20.0"
 
 [tool.taskipy.tasks]
 format = "make format"
 check = "make check"
 test = "make test"
+build-docs = "cd docs; make html"
 
 [tool.black]
 line-length = 88

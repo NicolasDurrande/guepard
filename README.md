@@ -1,5 +1,7 @@
 [![Quality checks and Tests](https://github.com/NicolasDurrande/guepard/actions/workflows/quality-checks.yaml/badge.svg)](https://github.com/NicolasDurrande/guepard/actions/workflows/quality-checks.yaml)
 
+[![Documentation](https://github.com/NicolasDurrande/guepard/actions/workflows/docs.yaml/badge.svg)](https://github.com/NicolasDurrande/guepard/actions/workflows/docs.yaml)
+
 # Guepard: A python library for aggregating Gaussian process sub-models
 
 Guepard aims at building faster Gaussian process models by constructing and aggregating sub-models based on subsets of the data. It is based on GPflow and implements various aggregation methods:
