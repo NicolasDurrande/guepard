@@ -45,7 +45,7 @@ authors = [
     "Vincent Dutordoir",
 ]
 project = 'Guepard'
-copyright = f'{dt.datetime.now().year}: ' + ' and '.join(authors)
+copyright = f'{dt.datetime.now().year}. Apache 2.0'
 author = ' and '.join(authors)
 
 # The short X.Y version
@@ -68,7 +68,7 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',
     'sphinx.ext.mathjax',
-    'sphinx.ext.napoleon',  # enables Sphinx to parse both Google style docstrings
+    'sphinx.ext.napoleon',  # enables Sphinx to parse Google style docstrings
     'sphinx.ext.viewcode',
     'matplotlib.sphinxext.plot_directive',
     'sphinx_autodoc_typehints',
