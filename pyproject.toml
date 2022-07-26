@@ -32,6 +32,7 @@ pre-commit = "^2.20.0"
 format = "make format"
 check = "make check"
 test = "make test"
+build-docs = "cd docs; make html"
 
 [tool.black]
 line-length = 88

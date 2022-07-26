@@ -119,8 +119,8 @@ language = None
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
     # Sometimes sphinx reads its own outputs as inputs!
-    'build/html',
-    'build/jupyter_execute',
+    '_build/html',
+    '_build/jupyter_execute',
     'notebooks/README.md',
     'README.md',
     # Ignore markdown source for notebooks; myst-nb builds from the ipynb
