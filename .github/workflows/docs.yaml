@@ -1,6 +1,10 @@
 name: Documentation
 
-on: [push]
+# on: [push]
+workflow_run:
+  workflows: ["QualityChecks"]
+  type:
+    - complete
 
 jobs:
   documentation:
