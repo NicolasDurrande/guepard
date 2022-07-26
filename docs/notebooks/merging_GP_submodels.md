@@ -107,7 +107,7 @@ At this specific location, we define a "pseudo-likelihood" that corresponds to a
 $$ posterior \propto prior \times pseudo\_likelihood$$
 
 ```{code-cell} ipython3
-mpl1 = mp + vp / (vp - ve1) * (me1 - mp) * 9
+mpl1 = mp + vp / (vp - ve1) * (me1 - mp)
 vpl1 = vp * ve1 / (vp - ve1)
 pl1_pdf = norm.pdf(yy, mpl1 , np.sqrt(vpl1))
 
