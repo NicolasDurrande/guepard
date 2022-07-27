@@ -134,7 +134,7 @@ axes.set_xticklabels(["$x_1$", "$x_2$"])
 axes.set_ylabel("$y$")
 plt.tight_layout()
 
-plt.savefig("toy_implicit_obs.pdf")
+#plt.savefig("plots/toy_implicit_obs.pdf")
 ```
 
 Alternatively, one may choose to represent the equivalent observation as a likelihood function. With this point of view, the equivalent likelihood is function such that turns the prior distribution at test location into the posterior. It is thus given by the ratio posterior/prior.
@@ -159,7 +159,7 @@ ax.axes.xaxis.set_ticklabels([])
 ax.axes.yaxis.set_ticklabels([])
 plt.tight_layout()
 
-plt.savefig("toy_implicit_lik.pdf")
+#plt.savefig("plots/toy_implicit_lik.pdf")
 ```
 
 ## Application to posterior predictions with a GPR ensemble
@@ -200,7 +200,7 @@ for i, m in enumerate(M):
     
 #[axes[i].plot(X, Y, 'kx', mew=1., alpha=.1) for i, _ in enumerate(M)];
 plt.tight_layout()
-plt.savefig(f"toy_submodels.pdf")
+#plt.savefig(f"plots/toy_submodels.pdf")
 ```
 
 We plot the prior, model 1 and the implitic observation at (x1, x2)
@@ -261,7 +261,7 @@ ax.set_ylabel("$f(x_2)$")
 ax.axes.xaxis.set_ticklabels([])
 ax.axes.yaxis.set_ticklabels([])
 plt.tight_layout()
-plt.savefig("toy_approx_posterior.pdf")
+#plt.savefig("plots/toy_approx_posterior.pdf")
 
 ```
 
