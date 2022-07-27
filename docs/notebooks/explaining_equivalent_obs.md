@@ -15,7 +15,7 @@ jupyter:
 
 # The equivalent observations method for GP model ensembles
 
-This notebook illustrates how the concept of *equivalent observations*.
+This notebook illustrates the concept of *equivalent observations*.
 
 First, let's load some required packages
 
@@ -76,7 +76,7 @@ def plt_mvn(mu, Sigma, color='C0', linestyles='solid'):
 
 ```
 
-First, let us consider a simple dataset and fit a GP model to it
+Let us consider a simple dataset and fit a GP model to it
 
 ```python
 noise_var = 0.01

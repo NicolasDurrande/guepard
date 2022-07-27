@@ -18,9 +18,6 @@ class EquivalentObsEnsemble(GPModel):
         :param models: A list of GPflow models with the same prior and likelihood.
         """
         # check that all models are of the same type (e.g., GPR, SVGP)
-        # assert all(
-        #     [model.__class__ == self._model_class() for model in models]
-        # ), f"All submodels need to be of type '{self._model_class}'"
         # check that all models have the same prior
         for model in models[1:]:
             assert (

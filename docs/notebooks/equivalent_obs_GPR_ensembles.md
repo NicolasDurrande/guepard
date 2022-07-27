@@ -18,7 +18,7 @@ jupyter:
 
 This notebook illustrates how to use the equivalent observation framework to train an ensemble of Gaussian process models and to make predictions with it.
 
-First, let's load some required packages
+First, let's load some required packages and write some plotting functionality.
 
 ```python
 import numpy as np
@@ -64,7 +64,6 @@ def f(x):
     return np.sin(10 * x[:, :1]) + 3. * x[:, :1]
 
 X = np.linspace(0, 1, 101)[:, None]
-#np.random.shuffle(X)
 Y = f(X) + np.sqrt(noise_var) * np.random.normal(size=X.shape)
 
 plt.plot(X, Y, 'kx')
@@ -81,19 +80,19 @@ Yl = np.array_split(Y, num_split)
 kernel = gpflow.kernels.Matern32()
 
 # make submodels and plot them
-M = get_gpr_submodels(zip(Xl, Yl), kernel, noise_variance=noise_var) # list of num_split GPR models
+submodels = get_gpr_submodels(zip(Xl, Yl), kernel, noise_variance=noise_var) # list of num_split GPR models
 
 # M is a list of GPR models, let's plot them
 fig, axes = plt.subplots(1, 3, figsize=(16, 4))
 x = np.linspace(0, 2, 101)[:, None]
-[plot_model(m, axes[i], x) for i, m in enumerate(M)];
-[axes[i].plot(X, Y, 'kx', mew=1., alpha=.1) for i, _ in enumerate(M)];
+[plot_model(m, axes[i], x) for i, m in enumerate(submodels)];
+[axes[i].plot(X, Y, 'kx', mew=1., alpha=.1) for i, _ in enumerate(submodels)];
 ```
 
 We can now aggregate the three sub-models using PAPL
 
 ```python
-m_agg = guepard.EquivalentObsEnsemble(M)
+m_agg = guepard.EquivalentObsEnsemble(submodels)
 
 fig, ax = plt.subplots(1, 1, figsize=(6, 4))
 plot_model(m_agg, ax, plot_data=False)
@@ -191,7 +190,7 @@ class Sample:
 
 fig, ax = plt.subplots(1, 1, figsize=(14, 8))
 
-for i in range(10):
+for _ in range(10):
     x = np.linspace(0, 2, 51)[:, None]
     f = Sample(kernel)
     E = Y - f(X) + np.sqrt(noise_var) * np.random.normal(size=Y.shape)
