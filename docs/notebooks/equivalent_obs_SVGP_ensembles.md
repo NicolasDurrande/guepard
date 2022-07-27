@@ -297,15 +297,5 @@ ax.set_xlim(x1_lim)
 ax.set_ylim(x2_lim)
 ```
 
-```python
-from scipy.stats import qmc
-sampler = qmc.Halton(d=2, scramble=False)
-sample = sampler.random(n=2**7)[:, :1]
-
-plt.plot(sample, 0 * sample, 'kx')
-plt.xlim((0, 1))
-np.max(sample)
-sample.shape
-```
 
 
