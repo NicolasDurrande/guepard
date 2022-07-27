@@ -18,7 +18,7 @@ jupyter:
 
 This notebook illustrates how to use the equivalent observation framework to train an ensemble of Gaussian process models and to make predictions with it.
 
-First, let's load some required packages
+First, let's load some required packages and write some plotting functionality.
 
 ```python
 import numpy as np
