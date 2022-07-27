@@ -92,7 +92,7 @@ x = np.linspace(0, 2, 101)[:, None]
 We can now aggregate the three sub-models using PAPL
 
 ```python
-m_agg = guepard.GprPapl(M)
+m_agg = guepard.GprPapl(submodels)
 
 fig, ax = plt.subplots(1, 1, figsize=(6, 4))
 plot_model(m_agg, ax, plot_data=False)
