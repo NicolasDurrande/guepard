@@ -31,7 +31,7 @@ def get_gpr_submodels(
     return models
 
 
-class GprPapl(GuepardBase[GPR]):
+class GprPapl(GuepardBase):
     """PAPL with GPR submodels"""
 
     def _model_class(self) -> Type[GPR]:

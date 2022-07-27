@@ -1,5 +1,5 @@
 import abc
-from typing import Any, Generic, List, Type, TypeVar
+from typing import Any, List, Type, TypeVar
 
 import tensorflow as tf
 
@@ -10,7 +10,7 @@ from gpflow.models import GPModel
 SubModelType = TypeVar("SubModelType", bound=GPModel)
 
 
-class GuepardBase(abc.ABC, Generic[SubModelType]):
+class GuepardBase(GPModel, abc.ABC):
     """
     Posterior Aggregation with Pseudo-Likelihood: Base class for merging submodels using the pseudo-likelihood method.
     """
@@ -20,9 +20,6 @@ class GuepardBase(abc.ABC, Generic[SubModelType]):
         :param models: A list of GPflow models with the same prior and likelihood.
         """
         # check that all models are of the same type (e.g., GPR, SVGP)
-        assert all(
-            [model.__class__ == self._model_class() for model in models]
-        ), f"All submodels need to be of type '{self._model_class}'"
         # check that all models have the same prior
         for model in models[1:]:
             assert (
@@ -37,6 +34,14 @@ class GuepardBase(abc.ABC, Generic[SubModelType]):
             assert (
                 model.num_latent_gps == models[0].num_latent_gps
             ), "All submodels must have the same number of latent GPs"
+
+        GPModel.__init__(
+            self,
+            kernel=models[0].kernel,
+            likelihood=models[0].likelihood,
+            mean_function=models[0].mean_function,
+            num_latent_gps=models[0].num_latent_gps,
+        )
 
         self.models: List[SubModelType] = models
 

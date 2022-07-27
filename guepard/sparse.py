@@ -67,7 +67,7 @@ def get_svgp_submodels(
     return models
 
 
-class SparseGuepard(GuepardBase[SVGP], SVGP_deprecated):
+class SparseGuepard(GuepardBase, SVGP_deprecated):
     def __init__(self, models: List[SVGP]):
         GuepardBase.__init__(self, models)
 
