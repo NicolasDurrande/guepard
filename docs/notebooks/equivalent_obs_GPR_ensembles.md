@@ -24,10 +24,10 @@ First, let's load some required packages
 import numpy as np
 import gpflow
 from gpflow.utilities import print_summary
+import guepard
+from guepard.utilities import get_gpr_submodels
 
 import matplotlib.pyplot as plt
-import guepard
-from guepard.gpr import get_gpr_submodels
 
 # The lines below are specific to the notebook format
 %matplotlib inline
@@ -51,7 +51,7 @@ def plot_model(m, ax, x=np.linspace(0, 1, 101)[:, None], plot_data=True, color='
         X, Y = m.data
         ax.plot(X, Y, "kx", mew=1.)
     
-    mean, var = m.predict_f(x)[:2]
+    mean, var = m.predict_f(x)
     plot_mean_conf(x, mean, var, ax, color)
 ```
 
@@ -93,7 +93,7 @@ x = np.linspace(0, 2, 101)[:, None]
 We can now aggregate the three sub-models using PAPL
 
 ```python
-m_agg = guepard.GprPapl(M)
+m_agg = guepard.EquivalentObsEnsemble(M)
 
 fig, ax = plt.subplots(1, 1, figsize=(6, 4))
 plot_model(m_agg, ax, plot_data=False)
@@ -115,8 +115,12 @@ gpflow.utilities.print_summary(m_agg)
 Guepard models can be trained like any other GPflow model
 
 ```python
+m_agg.training_loss()
+```
+
+```python
 opt = gpflow.optimizers.Scipy()
-opt_logs = opt.minimize(m_agg.training_loss_submodels, m_agg.trainable_variables, options=dict(maxiter=100))
+opt_logs = opt.minimize(m_agg.training_loss, m_agg.trainable_variables, options=dict(maxiter=100))
 print_summary(m_agg)
 ```
 
@@ -197,7 +201,7 @@ for i in range(10):
     Me = get_gpr_submodels(zip(Xl, Es), kernel, noise_variance=noise_var)
 
     # aggregate predictions
-    m_agg_error = guepard.GprPapl(Me)
+    m_agg_error = guepard.EquivalentObsEnsemble(Me)
     m, v = m_agg_error.predict_f(x)
     ax.plot(x, f(x) + m, 'C2', lw=.5)
 
