@@ -186,7 +186,7 @@ class Sample:
 
 fig, ax = plt.subplots(1, 1, figsize=(14, 8))
 
-for i in range(10):
+for _ in range(10):
     x = np.linspace(0, 2, 51)[:, None]
     f = Sample(kernel)
     E = Y - f(X) + np.sqrt(noise_var) * np.random.normal(size=Y.shape)
