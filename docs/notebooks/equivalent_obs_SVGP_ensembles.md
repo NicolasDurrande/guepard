@@ -210,17 +210,15 @@ plt.tight_layout()
 We can now use the equivalent observation framework to merge these four submodels
 
 ```python
-m_agg = guepard.SparseGuepard(M)
-m_agg.predict_f = m_agg.predict_foo
+m_agg = guepard.EquivalentObsEnsemble(M)
 Ftest, Vtest_full = m_agg.predict_f(Xtest, full_cov=True)
 Ytest = m_agg.predict_y(Xtest)[0]
-
 ```
 
 ```python
 fig, ax = plt.subplots(figsize=(6, 6))
 
-plt.plot(m_agg.inducing_variable.Z[:, 0], m_agg.inducing_variable.Z[:, 1], "ko", ms=2., alpha=.4)
+[plt.plot(m.inducing_variable.Z[:, 0], m.inducing_variable.Z[:, 1], "ko", ms=2., alpha=.4) for m in m_agg.models]
 
 plot_latent(Ftest, Vtest_full, X1_grid, X2_grid, ax, num_sample=0)  # the figure in the paper uses num_sample=100 
 
@@ -240,7 +238,17 @@ plt.tight_layout()
 For comparison we fit an SVGP model with the same kernel, same inducing location Z, but an optimised distribution for the inducing variables.
 
 ```python
-m_svgp = m_agg.get_fully_parameterized_svgp()
+Z = np.vstack([m.inducing_variable.Z for m in m_agg.models])
+q_mu, q_sigma = m_agg.predict_f(Z, full_cov=True)
+q_sqrt = np.linalg.cholesky(q_sigma)
+
+m_svgp = gpflow.models.SVGP(inducing_variable=Z, likelihood=lik, kernel=kernel, mean_function=mean_function,
+                      q_mu=q_mu, q_sqrt=q_sqrt, whiten=False)
+gpflow.set_trainable(m_svgp.inducing_variable, False)
+
+opt = gpflow.optimizers.Scipy()
+opt_logs = opt.minimize(m_svgp.training_loss_closure((X, Y)), m_svgp.trainable_variables);
+
 gpflow.set_trainable(m_svgp.inducing_variable, False)
 
 opt = gpflow.optimizers.Scipy()
@@ -266,7 +274,7 @@ cs = ax.contour(X1_grid, X2_grid, np.reshape(Ytest, (50, 50)), linewidths=1, col
 
 ax.clabel(cs, inline=1, fontsize=10, fmt='%1.2f')
 
-plt.plot(m_agg.inducing_variable.Z[:, 0], m_agg.inducing_variable.Z[:, 1], "ko", ms=2., alpha=.4)
+plt.plot(m_svgp.inducing_variable.Z[:, 0], m_svgp.inducing_variable.Z[:, 1], "ko", ms=2., alpha=.4)
 ax.set_xlabel("$x_1$", fontsize=14)
 ax.set_ylabel("$x_2$", fontsize=14)
 ax.set_xlim(x1_lim)
@@ -299,15 +307,5 @@ ax.set_xlim(x1_lim)
 ax.set_ylim(x2_lim)
 ```
 
-```python
-from scipy.stats import qmc
-sampler = qmc.Halton(d=2, scramble=False)
-sample = sampler.random(n=2**7)[:, :1]
-
-plt.plot(sample, 0 * sample, 'kx')
-plt.xlim((0, 1))
-np.max(sample)
-sample.shape
-```
 
 
