@@ -15,7 +15,7 @@ jupyter:
 
 # The equivalent observations method for GP model ensembles
 
-This notebook illustrates how the concept of *equivalent observations*.
+This notebook illustrates the concept of *equivalent observations*.
 
 First, let's load some required packages
 
