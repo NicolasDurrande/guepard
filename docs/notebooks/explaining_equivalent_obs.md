@@ -76,7 +76,7 @@ def plt_mvn(mu, Sigma, color='C0', linestyles='solid'):
 
 ```
 
-First, let us consider a simple dataset and fit a GP model to it
+Let us consider a simple dataset and fit a GP model to it
 
 ```python
 noise_var = 0.01
