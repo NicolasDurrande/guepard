@@ -7,7 +7,7 @@ import gpflow
 from gpflow.base import InputData, MeanAndVariance
 from gpflow.models import GPModel
 
-
+SubModelType = TypeVar("SubModelType", bound=GPModel)
 
 class GuepardBase(GPModel, abc.ABC):
     """
