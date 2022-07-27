@@ -64,7 +64,6 @@ def f(x):
     return np.sin(10 * x[:, :1]) + 3. * x[:, :1]
 
 X = np.linspace(0, 1, 101)[:, None]
-#np.random.shuffle(X)
 Y = f(X) + np.sqrt(noise_var) * np.random.normal(size=X.shape)
 
 plt.plot(X, Y, 'kx')
