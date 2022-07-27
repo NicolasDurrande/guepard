@@ -2,30 +2,13 @@ import numpy as np
 import pytest
 
 import gpflow
-
-from guepard import GprPapl, get_gpr_submodels
+import guepard
+from guepard.utilities import get_gpr_submodels
 
 np.random.seed(123456)
 
-
-def test_get_gpr_submodels():
-    data = [
-        (np.random.uniform(size=(10, 2)), np.random.normal(size=(10, 1)))
-        for _ in range(3)
-    ]
-    kernel = gpflow.kernels.Matern32()
-    M = get_gpr_submodels(data, kernel)
-
-    assert (
-        len(M) == 3
-    ), "The length of the model list isn't equal to the length of the data list"
-
-    # smoke test on model prediction
-    M[1].predict_f(np.random.uniform(np.random.uniform(size=(3, 2))))
-
-
 @pytest.mark.parametrize("num_latent", [1, 2])
-def test_papl_predict_f_marginals(num_latent):
+def test_predict_f_marginals(num_latent):
     dim = 3
     num_data = 200
     num_split = 3
@@ -41,7 +24,7 @@ def test_papl_predict_f_marginals(num_latent):
 
     # make submodels and aggregate them
     M = get_gpr_submodels(list(zip(Xl, Yl)), kernel)
-    m_agg = GprPapl(M)
+    m_agg = guepard.EquivalentObsEnsemble(M)
 
     # make a GPR model as baseline
     m_gpr = gpflow.models.GPR((X, Y), kernel, noise_variance=0.1)
@@ -81,7 +64,7 @@ def test_papl_predict_f_marginals(num_latent):
 
 
 @pytest.mark.parametrize("num_latent", [1, 2])
-def test_papl_predict_f(num_latent):
+def test_predict_f(num_latent):
     dim = 3
     num_data = 200
     num_split = 3
@@ -97,7 +80,7 @@ def test_papl_predict_f(num_latent):
 
     # make submodels and aggregate them
     M = get_gpr_submodels(list(zip(Xl, Yl)), kernel)
-    m_agg = GprPapl(M)
+    m_agg = guepard.EquivalentObsEnsemble(M)
 
     # make a GPR model as baseline
     m_gpr = gpflow.models.GPR((X, Y), kernel, noise_variance=0.1)
