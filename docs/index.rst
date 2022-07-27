@@ -7,7 +7,9 @@ Build on top of GPflow_.
    :maxdepth: 1
    :caption: Getting Started
 
-   notebooks/merging_GP_submodels
+   notebooks/explaining_equivalent_obs
+   notebooks/equivalent_obs_GPR_ensembles
+   notebooks/equivalent_obs_SVGP_ensembles
 
 .. toctree::
    :maxdepth: 1

@@ -1,6 +1,7 @@
 ---
 jupyter:
   jupytext:
+    formats: ipynb,md
     text_representation:
       extension: .md
       format_name: markdown
@@ -210,12 +211,10 @@ We can now use the equivalent observation framework to merge these four submodel
 
 ```python
 m_agg = guepard.SparseGuepard(M)
-#m_agg.predict_f = m_agg.predict_foo
-#m_agg.predict_f = m_agg.predict_foo
-#Ftest, Vtest_full = m_agg.predict_f(Xtest, full_cov=True)
-#Ytest = m_agg.predict_y(Xtest)[0]
+m_agg.predict_f = m_agg.predict_foo
+Ftest, Vtest_full = m_agg.predict_f(Xtest, full_cov=True)
+Ytest = m_agg.predict_y(Xtest)[0]
 
-#print(np.min(Ftest), np.max(Ftest))
 ```
 
 ```python
@@ -223,7 +222,7 @@ fig, ax = plt.subplots(figsize=(6, 6))
 
 plt.plot(m_agg.inducing_variable.Z[:, 0], m_agg.inducing_variable.Z[:, 1], "ko", ms=2., alpha=.4)
 
-plot_latent(Ftest, Vtest_full, X1_grid, X2_grid, ax, num_sample=100)
+plot_latent(Ftest, Vtest_full, X1_grid, X2_grid, ax, num_sample=0)  # the figure in the paper uses num_sample=100 
 
 ax.axhline(0, color='k', linestyle="dashed", alpha=0.5, linewidth=.5)
 ax.axvline(0, color='k', linestyle="dashed", alpha=0.5, linewidth=.5)
@@ -234,7 +233,7 @@ ax.axes.xaxis.set_ticklabels([])
 ax.axes.yaxis.set_ticklabels([])
 
 plt.tight_layout()
-plt.savefig("plots/banana_latents.pdf")
+#plt.savefig("plots/banana_latents.pdf")
 
 ```
 
@@ -268,15 +267,15 @@ cs = ax.contour(X1_grid, X2_grid, np.reshape(Ytest, (50, 50)), linewidths=1, col
 ax.clabel(cs, inline=1, fontsize=10, fmt='%1.2f')
 
 plt.plot(m_agg.inducing_variable.Z[:, 0], m_agg.inducing_variable.Z[:, 1], "ko", ms=2., alpha=.4)
-#ax.set_xlabel("$x_1$", fontsize=14)
-#ax.set_ylabel("$x_2$", fontsize=14)
+ax.set_xlabel("$x_1$", fontsize=14)
+ax.set_ylabel("$x_2$", fontsize=14)
 ax.set_xlim(x1_lim)
 ax.set_ylim(x2_lim)
-ax.axes.xaxis.set_ticklabels([])
-ax.axes.yaxis.set_ticklabels([])
+ax.axes.xaxis.set_ticks([-3, 0, 3])
+ax.axes.yaxis.set_ticks([-3, 0, 3])
 
 plt.tight_layout()
-plt.savefig("plots/banana_models.pdf")
+# plt.savefig("plots/banana_models.pdf")
 ```
 
 we can plot the absolute error
@@ -298,11 +297,6 @@ ax.set_xlabel("$x_1$", fontsize=14)
 ax.set_ylabel("$x_2$", fontsize=14)
 ax.set_xlim(x1_lim)
 ax.set_ylim(x2_lim)
-```
-
-```python
-print((15 * 16 / 2 + 15) * 4)
-print(60 * 61 / 2 + 60)
 ```
 
 ```python
