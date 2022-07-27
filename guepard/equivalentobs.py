@@ -1,10 +1,12 @@
-from typing import Optional, List, Type, TypeVar
 from itertools import zip_longest
+from typing import List, Union
+
 import tensorflow as tf
 
 import gpflow
 from gpflow.base import InputData, MeanAndVariance, RegressionData
 from gpflow.models import GPModel
+
 
 class EquivalentObsEnsemble(GPModel):
     """
@@ -52,13 +54,24 @@ class EquivalentObsEnsemble(GPModel):
         return r
 
     def maximum_log_likelihood_objective(self, data: List[RegressionData]) -> tf.Tensor:  # type: ignore
-        external = [isinstance(m, gpflow.models.ExternalDataTrainingLossMixin) for m in self.models] 
+        [
+            isinstance(m, gpflow.models.ExternalDataTrainingLossMixin)
+            for m in self.models
+        ]
         objectives = [m.training_loss(d) for m, d in zip_longest(self.models, data)]
         return tf.reduce_sum(objectives)
 
-    def training_loss(self, data: Optional[List[RegressionData]] = [None]) -> tf.Tensor:
-        external = [isinstance(m, gpflow.models.ExternalDataTrainingLossMixin) for m in self.models] 
-        objectives = [m.training_loss(d) if ext else m.training_loss() for m, ext, d in zip_longest(self.models, external, data)]
+    def training_loss(
+        self, data: List[Union[None, RegressionData]] = [None]
+    ) -> tf.Tensor:
+        external = [
+            isinstance(m, gpflow.models.ExternalDataTrainingLossMixin)
+            for m in self.models
+        ]
+        objectives = [
+            m.training_loss(d) if ext else m.training_loss()
+            for m, ext, d in zip_longest(self.models, external, data)
+        ]
         return tf.reduce_sum(objectives)
 
     def predict_f(

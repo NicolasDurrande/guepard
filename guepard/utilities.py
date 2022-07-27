@@ -1,13 +1,13 @@
 from typing import List, Optional
 
+from scipy.cluster.vq import kmeans
+
 import gpflow
 from gpflow.base import RegressionData
 from gpflow.kernels import Kernel
 from gpflow.mean_functions import MeanFunction
 from gpflow.models.gpr import GPR
 from gpflow.models.svgp import SVGP
-
-from scipy.cluster.vq import kmeans
 
 
 def get_gpr_submodels(
@@ -25,6 +25,7 @@ def get_gpr_submodels(
         m.mean_function = models[0].mean_function
 
     return models
+
 
 def get_svgp_submodels(
     data_list: List[RegressionData],

@@ -24,6 +24,7 @@ def data():
     Y = f(X) + np.sqrt(CONSTS.noise_var) * np.random.normal(size=X.shape)
     return X, Y
 
+
 def test_get_gpr_submodels():
     data = [
         (np.random.uniform(size=(10, 2)), np.random.normal(size=(10, 1)))
@@ -62,7 +63,3 @@ def test_get_svgp_submodels(data):
 
     # smoke test on model prediction
     models[1].predict_f(np.random.uniform(np.random.uniform(size=(3, 1))))
-
-
-     
-

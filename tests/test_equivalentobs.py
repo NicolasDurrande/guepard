@@ -2,10 +2,12 @@ import numpy as np
 import pytest
 
 import gpflow
+
 import guepard
 from guepard.utilities import get_gpr_submodels
 
 np.random.seed(123456)
+
 
 @pytest.mark.parametrize("num_latent", [1, 2])
 def test_predict_f_marginals(num_latent):
