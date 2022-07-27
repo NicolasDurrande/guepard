@@ -85,8 +85,8 @@ submodels = get_gpr_submodels(zip(Xl, Yl), kernel, noise_variance=noise_var) # l
 # M is a list of GPR models, let's plot them
 fig, axes = plt.subplots(1, 3, figsize=(16, 4))
 x = np.linspace(0, 2, 101)[:, None]
-[plot_model(m, axes[i], x) for i, m in enumerate(M)];
-[axes[i].plot(X, Y, 'kx', mew=1., alpha=.1) for i, _ in enumerate(M)];
+[plot_model(m, axes[i], x) for i, m in enumerate(submodels)];
+[axes[i].plot(X, Y, 'kx', mew=1., alpha=.1) for i, _ in enumerate(submodels)];
 ```
 
 We can now aggregate the three sub-models using PAPL
