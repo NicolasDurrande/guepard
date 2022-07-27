@@ -183,13 +183,7 @@ kernel = gpflow.kernels.Matern32()
 # make submodels and aggregate them
 M = get_gpr_submodels(zip(Xl, Yl), kernel, noise_variance=noise_var) # list of num_split GPR models
 
-m_agg = guepard.GprPapl(M)
-```
-
-`M` is a list of GPR models, let's plot them
-
-```python
-# plot predictions
+# plot submodel predictions
 x = np.linspace(-.5, 1.5, 101)[:, None]
 fig, axes = plt.subplots(3, 1, figsize=(6, 6), sharex=True)
 
@@ -238,7 +232,7 @@ mpl2 = mup + Sp @ np.linalg.inv(Sp - Se2 + jitter) @ (me2 - mup)
 
 ```python
 m_gpr = gpflow.models.GPR((X, Y), kernel, noise_variance=noise_var)
-m_agg = guepard.GprPapl(M)
+m_agg = guepard.EquivalentObsEnsemble(M)
 
 mean_papl, var_papl = m_agg.predict_f(Xt, full_cov=True)
 mean_papl, var_papl = mean_papl.numpy(), var_papl.numpy()[0]
