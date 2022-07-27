@@ -43,8 +43,6 @@ data = sio.loadmat('../../data/banana.mat')
 Y = data['banana_Y']
 X = data['banana_X']
 
-#x1_lim = [np.min(X[:, 0])-0.1, np.max(X[:, 0])+0.1]
-#x2_lim = [np.min(X[:, 1])-0.1, np.max(X[:, 1])+0.1]
 x1_lim = [-3.5, 3.5]
 x2_lim = [-3.5, 3.5]
 
