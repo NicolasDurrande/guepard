@@ -80,7 +80,7 @@ Yl = np.array_split(Y, num_split)
 kernel = gpflow.kernels.Matern32()
 
 # make submodels and plot them
-M = get_gpr_submodels(zip(Xl, Yl), kernel, noise_variance=noise_var) # list of num_split GPR models
+submodels = get_gpr_submodels(zip(Xl, Yl), kernel, noise_variance=noise_var) # list of num_split GPR models
 
 # M is a list of GPR models, let's plot them
 fig, axes = plt.subplots(1, 3, figsize=(16, 4))
