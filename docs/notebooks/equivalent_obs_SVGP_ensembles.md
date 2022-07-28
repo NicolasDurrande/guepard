@@ -13,13 +13,13 @@ jupyter:
     name: python3
 ---
 
-# Merging SVGP sub-models using PAPL
+# Merging SVGP ensembles using equivalent observations
 
-This notebook illustrates how to use PAPL (Posterior Aggregation using Pseudo-Likelihood) to train an ensemble of GP classification models and to make predictions with it.
+This notebook illustrates how to use the equivalent observation framework to train an ensemble of GP classification models and to make predictions with it.
 
 First, let's load some required packages
 
-```python
+```python vscode={"languageId": "python"}
 import numpy as np
 import gpflow
 import guepard
@@ -38,7 +38,7 @@ display(HTML("<style>div.output_scroll { height: 150em; }</style>"));
 
 We now load the banana dataset: This is a binary classification problem with two classes. 
 
-```python
+```python vscode={"languageId": "python"}
 data = sio.loadmat('../../data/banana.mat')
 Y = data['banana_Y']
 X = data['banana_X']
@@ -64,7 +64,7 @@ plt.tight_layout()
 
 We then split the dataset in four, with one subset per quadrant of the input space:
 
-```python
+```python vscode={"languageId": "python"}
 # Compute masks for the four quadrants
 maskNE = np.logical_and(X[:, 0] < 0, X[:, 1] >= 0) 
 maskNW = np.logical_and(X[:, 0] >= 0, X[:, 1] >= 0) 
@@ -99,7 +99,7 @@ plt.tight_layout()
 
 We build an SVGP model for each data subset, with 15 inducing variables for each of them. Note that all submodels share the same kernel and that the kernel parameters are fixed.
 
-```python
+```python vscode={"languageId": "python"}
 kernel = gpflow.kernels.Matern32(variance=50., lengthscales=[3., 3.])
 gpflow.set_trainable(kernel, False)
 lik = gpflow.likelihoods.Bernoulli()
@@ -120,7 +120,7 @@ for mask in masks:
 
 Let's plot the submodels predictions in the data space.
 
-```python
+```python vscode={"languageId": "python"}
 x1_grid = np.linspace(*x1_lim, 50)
 x2_grid = np.linspace(*x2_lim, 50)
 X1_grid, X2_grid = np.meshgrid(x1_grid, x2_grid) 
@@ -159,7 +159,7 @@ plt.tight_layout()
 
 We can also plot the submodel predictions in the latent space
 
-```python
+```python vscode={"languageId": "python"}
 def plot_latent(Mtest, Vtest_full, X1_grid, X2_grid, ax, num_sample=100):
     Vtest_full = Vtest_full.numpy()[0, :, :]
     Vtest = np.diag(Vtest_full).reshape((50, 50))
@@ -191,7 +191,7 @@ for i in range(2):
         axes[i, j].plot(Z[:, 0], Z[:, 1], "ko", ms=2., alpha=.4)
         
         Ftest, Vtest_full = M[k].predict_f(Xtest, full_cov=True)
-        plot_latent(Ftest, Vtest_full, X1_grid, X2_grid, axes[i,j], num_sample=0) # The figure in paper has num_sample=50
+        plot_latent(Ftest, Vtest_full, X1_grid, X2_grid, axes[i,j], num_sample=50) # The figure in paper has num_sample=50
 
         axes[i,j].axhline(0, color='k', linestyle="dashed", alpha=0.2, linewidth=.5)
         axes[i,j].axvline(0, color='k', linestyle="dashed", alpha=0.2, linewidth=.5)
@@ -207,20 +207,18 @@ plt.tight_layout()
 
 We can now use the equivalent observation framework to merge these four submodels
 
-```python
-m_agg = guepard.SparseGuepard(M)
-m_agg.predict_f = m_agg.predict_foo
+```python vscode={"languageId": "python"}
+m_agg = guepard.EquivalentObsEnsemble(M)
 Ftest, Vtest_full = m_agg.predict_f(Xtest, full_cov=True)
 Ytest = m_agg.predict_y(Xtest)[0]
-
 ```
 
-```python
+```python vscode={"languageId": "python"}
 fig, ax = plt.subplots(figsize=(6, 6))
 
-plt.plot(m_agg.inducing_variable.Z[:, 0], m_agg.inducing_variable.Z[:, 1], "ko", ms=2., alpha=.4)
+[plt.plot(m.inducing_variable.Z[:, 0], m.inducing_variable.Z[:, 1], "ko", ms=2., alpha=.4) for m in m_agg.models]
 
-plot_latent(Ftest, Vtest_full, X1_grid, X2_grid, ax, num_sample=0)  # the figure in the paper uses num_sample=100 
+plot_latent(Ftest, Vtest_full, X1_grid, X2_grid, ax, num_sample=100)  # the figure in the paper uses num_sample=100 
 
 ax.axhline(0, color='k', linestyle="dashed", alpha=0.5, linewidth=.5)
 ax.axvline(0, color='k', linestyle="dashed", alpha=0.5, linewidth=.5)
@@ -237,8 +235,18 @@ plt.tight_layout()
 
 For comparison we fit an SVGP model with the same kernel, same inducing location Z, but an optimised distribution for the inducing variables.
 
-```python
-m_svgp = m_agg.get_fully_parameterized_svgp()
+```python vscode={"languageId": "python"}
+Z = np.vstack([m.inducing_variable.Z for m in m_agg.models])
+q_mu, q_sigma = m_agg.predict_f(Z, full_cov=True)
+q_sqrt = np.linalg.cholesky(q_sigma)
+
+m_svgp = gpflow.models.SVGP(inducing_variable=Z, likelihood=lik, kernel=kernel, mean_function=mean_function,
+                      q_mu=q_mu, q_sqrt=q_sqrt, whiten=False)
+gpflow.set_trainable(m_svgp.inducing_variable, False)
+
+opt = gpflow.optimizers.Scipy()
+opt_logs = opt.minimize(m_svgp.training_loss_closure((X, Y)), m_svgp.trainable_variables);
+
 gpflow.set_trainable(m_svgp.inducing_variable, False)
 
 opt = gpflow.optimizers.Scipy()
@@ -247,7 +255,7 @@ opt_logs = opt.minimize(m_svgp.training_loss_closure((X, Y)), m_svgp.trainable_v
 Ysvgp = m_svgp.predict_y(Xtest)[0]
 ```
 
-```python
+```python vscode={"languageId": "python"}
 fig, ax = plt.subplots(figsize=(6, 6))
 
 ax.axhline(0, color='k', linestyle="dashed", alpha=0.5, linewidth=.5)
@@ -264,7 +272,7 @@ cs = ax.contour(X1_grid, X2_grid, np.reshape(Ytest, (50, 50)), linewidths=1, col
 
 ax.clabel(cs, inline=1, fontsize=10, fmt='%1.2f')
 
-plt.plot(m_agg.inducing_variable.Z[:, 0], m_agg.inducing_variable.Z[:, 1], "ko", ms=2., alpha=.4)
+plt.plot(m_svgp.inducing_variable.Z[:, 0], m_svgp.inducing_variable.Z[:, 1], "ko", ms=2., alpha=.4)
 ax.set_xlabel("$x_1$", fontsize=14)
 ax.set_ylabel("$x_2$", fontsize=14)
 ax.set_xlim(x1_lim)
@@ -278,7 +286,7 @@ plt.tight_layout()
 
 we can plot the absolute error
 
-```python
+```python vscode={"languageId": "python"}
 error = (Ytest- Ysvgp).numpy().flatten()
 print("max absolute error", np.max(np.abs(error)))
 

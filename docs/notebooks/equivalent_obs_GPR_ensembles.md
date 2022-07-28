@@ -14,7 +14,7 @@ jupyter:
     name: python3
 ---
 
-# Merging GP regression sub-models using equivalent observations
+# Merging GP regression ensembles using equivalent observations
 
 This notebook illustrates how to use the equivalent observation framework to train an ensemble of Gaussian process models and to make predictions with it.
 
@@ -24,10 +24,10 @@ First, let's load some required packages and write some plotting functionality.
 import numpy as np
 import gpflow
 from gpflow.utilities import print_summary
+import guepard
+from guepard.utilities import get_gpr_submodels
 
 import matplotlib.pyplot as plt
-import guepard
-from guepard.gpr import get_gpr_submodels
 
 # The lines below are specific to the notebook format
 %matplotlib inline
@@ -51,7 +51,7 @@ def plot_model(m, ax, x=np.linspace(0, 1, 101)[:, None], plot_data=True, color='
         X, Y = m.data
         ax.plot(X, Y, "kx", mew=1.)
     
-    mean, var = m.predict_f(x)[:2]
+    mean, var = m.predict_f(x)
     plot_mean_conf(x, mean, var, ax, color)
 ```
 
@@ -65,11 +65,9 @@ def f(x):
 
 X = np.linspace(0, 1, 101)[:, None]
 Y = f(X) + np.sqrt(noise_var) * np.random.normal(size=X.shape)
-
-plt.plot(X, Y, 'kx')
 ```
 
-We now split the dataset in three, and build a GPR model for each of them
+The dataset is split in three subsets, and we build a GPR model for each of them
 
 ```python
 num_split = 3
@@ -92,7 +90,7 @@ x = np.linspace(0, 2, 101)[:, None]
 We can now aggregate the three sub-models using PAPL
 
 ```python
-m_agg = guepard.GprPapl(submodels)
+m_agg = guepard.EquivalentObsEnsemble(submodels)
 
 fig, ax = plt.subplots(1, 1, figsize=(6, 4))
 plot_model(m_agg, ax, plot_data=False)
@@ -114,8 +112,12 @@ gpflow.utilities.print_summary(m_agg)
 Guepard models can be trained like any other GPflow model
 
 ```python
+m_agg.training_loss()
+```
+
+```python
 opt = gpflow.optimizers.Scipy()
-opt_logs = opt.minimize(m_agg.training_loss_submodels, m_agg.trainable_variables, options=dict(maxiter=100))
+opt_logs = opt.minimize(m_agg.training_loss, m_agg.trainable_variables, options=dict(maxiter=100))
 print_summary(m_agg)
 ```
 
@@ -196,7 +198,7 @@ for _ in range(10):
     Me = get_gpr_submodels(zip(Xl, Es), kernel, noise_variance=noise_var)
 
     # aggregate predictions
-    m_agg_error = guepard.GprPapl(Me)
+    m_agg_error = guepard.EquivalentObsEnsemble(Me)
     m, v = m_agg_error.predict_f(x)
     ax.plot(x, f(x) + m, 'C2', lw=.5)
 
