@@ -14,7 +14,7 @@ jupyter:
     name: python3
 ---
 
-# Merging GP regression sub-models using equivalent observations
+# Merging GP regression ensembles using equivalent observations
 
 This notebook illustrates how to use the equivalent observation framework to train an ensemble of Gaussian process models and to make predictions with it.
 
@@ -65,11 +65,9 @@ def f(x):
 
 X = np.linspace(0, 1, 101)[:, None]
 Y = f(X) + np.sqrt(noise_var) * np.random.normal(size=X.shape)
-
-plt.plot(X, Y, 'kx')
 ```
 
-We now split the dataset in three, and build a GPR model for each of them
+The dataset is split in three subsets, and we build a GPR model for each of them
 
 ```python
 num_split = 3

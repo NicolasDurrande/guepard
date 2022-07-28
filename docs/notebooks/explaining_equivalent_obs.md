@@ -13,7 +13,7 @@ jupyter:
     name: python3
 ---
 
-# The equivalent observations method for GP model ensembles
+# The equivalent observations method for GP ensembles
 
 This notebook illustrates the concept of *equivalent observations*.
 
@@ -26,7 +26,7 @@ import guepard
 import matplotlib.pyplot as plt
 
 from gpflow.utilities import print_summary
-from guepard.gpr import get_gpr_submodels
+from guepard.utilities import get_gpr_submodels
 
 from scipy.stats import multivariate_normal as mvn
 
@@ -90,6 +90,8 @@ Y = f(X) + np.sqrt(noise_var) * np.random.normal(size=X.shape)
 # Define a GP model with GPflow
 kernel = gpflow.kernels.Matern32()
 m = gpflow.models.GPR((X, Y), kernel, noise_variance=noise_var)
+
+plt.plot(X, Y, "kx")
 ```
 
 Given $p$ prediction points $X^*$, the equivalent observation is defined as the vector $Y^*$ and the observation noise $\varepsilon^* \sim \mathcal{N}(0, T)$ such that the posterior distribution of $f(X_t)$ given the equivalent observations matches exactly the posterior of $f(X_t)$ given the full dataset. In other words, $Y^*$ and $\varepsilon^*$ are defined such that
@@ -115,23 +117,35 @@ x = np.linspace(-.5, 1.5, 101)[:, None]
 kx = kernel.K(x, Xt).numpy()
 kxx = kernel.K(x).numpy()
 mx = kx @ np.linalg.inv(Sp + Spl1) @ mpl1
-vx = kxx - kx @ np.linalg.inv(Sp + Spl1) @ kx.T
-vx = np.diag(vx)[:, None]
+vx_full = kxx - kx @ np.linalg.inv(Sp + Spl1) @ kx.T
+vx = np.diag(vx_full)[:, None]
 
-# plot predictions
-fig, axes = plt.subplots(1, 1, figsize=(6, 3))
+### plot predictions
+fig, axes = plt.subplots(3, 1, figsize=(6, 6))
+
+# prior
+plot_mean_conf(x, 0*x, 0*x+kxx[0,0]  , axes[0], 'C3', alpha=.5)
+axes[0].set_ylabel("prior")
+
+# posterior
 x = np.linspace(-.5, 1.5, 101)[:, None]
-plt.plot(X, Y, 'kx', alpha=0.1)
-plot_model(m, axes, x)
-plot_mean_conf(x, mx, vx, axes, 'C1', alpha=.5)
+plot_model(m, axes[1], x)
+axes[1].set_ylabel("posterior")
 
-[axes.axvline(x, color='k', linestyle="dashed", linewidth=.5, alpha=.5) for x in Xt]
-[plt.plot(x, y, "C1o", ms=5.) for x, y in zip(Xt, mpl1)]
-[plt.vlines(x, y-np.sqrt(c), y+np.sqrt(c) , "C1") for x, y, c in zip(Xt, mpl1, np.diag(Spl1))]
-axes.set_xticks(Xt.flatten().tolist())
-axes.set_yticks([])
-axes.set_xticklabels(["$x_1$", "$x_2$"])
-axes.set_ylabel("$y$")
+# equivalent_obs
+plot_mean_conf(x, mx, vx, axes[2], 'C1', alpha=.5)
+[plt.plot(x, y, "C5o", ms=5.) for x, y in zip(Xt, mpl1)]
+[plt.vlines(x, y-np.sqrt(c), y+np.sqrt(c) , "C5") for x, y, c in zip(Xt, mpl1, np.diag(Spl1))]
+axes[2].set_ylabel("equiv obs post")
+
+for ax in axes:
+    [ax.axvline(x, color='k', linestyle="dashed", linewidth=.5, alpha=.5) for x in Xt] 
+    ax.set_xticks(Xt.flatten().tolist())
+    ax.set_yticks([])
+    ax.set_xticklabels(["$x_1$", "$x_2$"])
+    ax.set_xlim((-.5, 1.5))
+    ax.set_ylim((-3, 5))
+    
 plt.tight_layout()
 
 #plt.savefig("plots/toy_implicit_obs.pdf")
@@ -140,17 +154,23 @@ plt.tight_layout()
 Alternatively, one may choose to represent the equivalent observation as a likelihood function. With this point of view, the equivalent likelihood is function such that turns the prior distribution at test location into the posterior. It is thus given by the ratio posterior/prior.
 
 ```python
-fig, ax = plt.subplots(1, 1, figsize=(6, 3))
+# posterior predictions given the equivalent observation
+mx = Sp @ np.linalg.inv(Sp + Spl1) @ mpl1
+vx_full = Sp - Sp @ np.linalg.inv(Sp + Spl1) @ Sp.T
+
+fig, ax = plt.subplots(1, 1, figsize=(6, 6))
 plt_mvn(mup, Sp, 'C3')
-plt_mvn(me1, Se1, 'C0')
-plt_mvn(mpl1, Spl1, 'C1')
+plt_mvn(mpl1, Spl1, 'C7')
+plt_mvn(mx, vx_full, 'C1')
+plt_mvn(me1, Se1, 'C0', linestyles="dotted")
 
 from matplotlib.lines import Line2D
 custom_lines = [Line2D([0], [0], color='C3', lw=1),
-                Line2D([0], [0], color='C0', lw=1),
-                Line2D([0], [0], color='C1', lw=1)]
+                Line2D([0], [0], color='C7', lw=1),
+                Line2D([0], [0], color='C1', lw=1),
+                Line2D([0], [0], color='C0', lw=1, linestyle="dotted")]
 
-ax.legend(custom_lines, ['prior', 'posterior given data', 'equivalent likelihood'], loc="center left", frameon=False)
+ax.legend(custom_lines, ['prior', 'equivalent likelihood', 'posterior given equiv obs', 'posterior given full data'], loc="center left", frameon=False)
 #ax.set_xticks([])
 #ax.set_yticks([])
 ax.set_xlabel("$f(x_1)$")
