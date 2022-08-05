@@ -5,6 +5,8 @@ import tensorflow as tf
 
 import gpflow
 from gpflow.base import InputData, MeanAndVariance, RegressionData
+from gpflow.experimental.check_shapes import check_shape as cs
+from gpflow.experimental.check_shapes import check_shapes
 from gpflow.models import GPModel
 
 
@@ -66,6 +68,12 @@ class EquivalentObsEnsemble(GPModel):
     ) -> tf.Tensor:
         return self.maximum_log_likelihood_objective(data)
 
+    @check_shapes(
+        "Xnew: [N, D]",
+        "return[0]: [N, L]",
+        "return[1]: [N, L] if not full_cov",
+        "return[1]: [L, N, N] if full_cov",
+    )
     def predict_f(
         self, Xnew: InputData, full_cov: bool = False, full_output_cov: bool = False
     ) -> MeanAndVariance:
@@ -77,28 +85,42 @@ class EquivalentObsEnsemble(GPModel):
         where we want to make prediction.
         """
         # prior distribution
-        mp = self.models[0].mean_function(Xnew)[None, :, :]  # [1, N, L]
-        vp = self.models[0].kernel.K(Xnew)[None, None, :, :]  # [1, L, N, N]
+        mp = cs(
+            self.models[0].mean_function(Xnew)[None, :, :],
+            "[broadcast P, N, broadcast L]",
+        )
+        vp = cs(
+            self.models[0].kernel.K(Xnew)[None, None, :, :],
+            "[broadcast P, broadcast L, N, N]",
+        )
 
         # expert distributions
+        # P: number of experts
         preds = [m.predict_f(Xnew, full_cov=True) for m in self.models]
-        Me = tf.concat([pred[0][None, :, :] for pred in preds], axis=0)  # [P, N, L]
-        Ve = tf.concat(
-            [pred[1][None, :, :, :] for pred in preds], axis=0
-        )  # [P, L, N, N]
+        Me = cs(tf.concat([pred[0][None] for pred in preds], axis=0), "[P, N, L]")
+        Ve = cs(tf.concat([pred[1][None] for pred in preds], axis=0), "[P, L, N, N]")
 
         # equivalent pseudo observations that would turn
         # the prior at Xnew into the expert posterior at Xnew
         jitter = gpflow.config.default_jitter()
-        Jitter = jitter * tf.eye(Xnew.shape[0], dtype=Me.dtype)[None, None, :, :]
-        pseudo_noise = vp @ tf.linalg.inv(vp - Ve + Jitter) @ vp - vp
+        Jitter = cs(
+            jitter * tf.eye(Xnew.shape[0], dtype=Me.dtype)[None, None, :, :],
+            "[1, 1, N, N]",
+        )
+
+        Lm = tf.linalg.cholesky(vp - Ve + Jitter)
+        A = cs(tf.linalg.triangular_solve(Lm, vp, lower=True), "[P, L, N, N]")
+        pseudo_noise = tf.matmul(A, A, transpose_a=True) - vp
+        # tf.linalg.cholesky_solve
+        # pseudo_noise = vp @ tf.linalg.inv(vp - Ve + Jitter) @ vp - vp (correct)
+
         # pseudo_noise = vp @ tf.linalg.inv(vp - Ve ) @ Ve
         # pseudo_noise = tf.linalg.inv(tf.linalg.inv(vp) - tf.linalg.inv(Ve))
-        pseudo_y = (
-            mp
-            + vp
-            @ tf.linalg.inv(vp - Ve + Jitter)
-            @ tf.transpose(Me - mp, (0, 2, 1))[:, :, :, None]
+        m = tf.transpose(Me - mp, (0, 2, 1))[:, :, :, None]
+        pseudo_y = mp + vp @ tf.linalg.triangular_solve(
+            tf.linalg.matrix_transpose(Lm),
+            tf.linalg.triangular_solve(Lm, m, lower=True),
+            lower=False,
         )  # [P, L, N, 1]
         # pseudo_y = mp + pseudo_noise @ tf.linalg.inv(Ve) @ (Me - mp)
 
