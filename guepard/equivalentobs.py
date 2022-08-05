@@ -51,16 +51,6 @@ class EquivalentObsEnsemble(GPModel):
         return r
 
     def maximum_log_likelihood_objective(self, data: List[RegressionData]) -> tf.Tensor:  # type: ignore
-        [
-            isinstance(m, gpflow.models.ExternalDataTrainingLossMixin)
-            for m in self.models
-        ]
-        objectives = [m.training_loss(d) for m, d in zip_longest(self.models, data)]
-        return tf.reduce_sum(objectives)
-
-    def training_loss(
-        self, data: List[Union[None, RegressionData]] = [None]
-    ) -> tf.Tensor:
         external = [
             isinstance(m, gpflow.models.ExternalDataTrainingLossMixin)
             for m in self.models
@@ -70,6 +60,11 @@ class EquivalentObsEnsemble(GPModel):
             for m, ext, d in zip_longest(self.models, external, data)
         ]
         return tf.reduce_sum(objectives)
+
+    def training_loss(
+        self, data: List[Union[None, RegressionData]] = [None]
+    ) -> tf.Tensor:
+        return self.maximum_log_likelihood_objective(data)
 
     def predict_f(
         self, Xnew: InputData, full_cov: bool = False, full_output_cov: bool = False
