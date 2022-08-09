@@ -148,6 +148,7 @@ theta_1 = np.array(mus) / np.array(sigmas)**2.
 theta_2 = 1. / (2 * np.array(sigmas)**2.)
 
 import matplotlib.cm as cm
+
 colors = cm.viridis(np.linspace(0, 1, len(theta_1)))
 
 plt.scatter(theta_1, theta_2, color=colors)
