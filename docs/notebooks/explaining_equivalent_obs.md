@@ -8,7 +8,7 @@ jupyter:
       format_version: '1.3'
       jupytext_version: 1.13.8
   kernelspec:
-    display_name: 'Python 3.9.13 (''.venv'': poetry)'
+    display_name: Python 3.8.13 ('guepard')
     language: python
     name: python3
 ---
