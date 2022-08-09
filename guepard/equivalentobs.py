@@ -52,7 +52,7 @@ class EquivalentObsEnsemble(GPModel):
             r += model.trainable_variables
         return r
 
-    def maximum_log_likelihood_objective(self, data: List[RegressionData]) -> tf.Tensor:  # type: ignore
+    def maximum_log_likelihood_objective(self, data: List[Union[None, RegressionData]]) -> tf.Tensor:  # type: ignore
         external = [
             isinstance(m, gpflow.models.ExternalDataTrainingLossMixin)
             for m in self.models
@@ -109,12 +109,13 @@ class EquivalentObsEnsemble(GPModel):
         )
 
         Lm = tf.linalg.cholesky(vp - Ve + Jitter)
-        A = cs(tf.linalg.triangular_solve(Lm, vp, lower=True), "[P, L, N, N]")
-        pseudo_noise = tf.matmul(A, A, transpose_a=True) - vp
+        # A = cs(tf.linalg.triangular_solve(Lm, vp, lower=True), "[P, L, N, N]")
+        # pseudo_noise = tf.matmul(A, A, transpose_a=True) - vp # likely the best
         # pseudo_noise = tf.linalg.inv(tf.linalg.inv(Ve) - tf.linalg.inv(vp))
         # pseudo_noise = vp @ tf.linalg.inv(vp - Ve) @ Ve
         # pseudo_noise = vp @ tf.linalg.inv(vp - Ve + Jitter) @ vp - vp
-        def A_inv_b(chol_A, b):
+
+        def A_inv_b(chol_A, b):  # type: ignore
             """Solves A^-1 b using using triagular solves
 
             .. math ::
