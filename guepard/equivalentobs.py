@@ -111,28 +111,43 @@ class EquivalentObsEnsemble(GPModel):
         Lm = tf.linalg.cholesky(vp - Ve + Jitter)
         A = cs(tf.linalg.triangular_solve(Lm, vp, lower=True), "[P, L, N, N]")
         pseudo_noise = tf.matmul(A, A, transpose_a=True) - vp
-        # tf.linalg.cholesky_solve
-        # pseudo_noise = vp @ tf.linalg.inv(vp - Ve + Jitter) @ vp - vp (correct)
+        # pseudo_noise = tf.linalg.inv(tf.linalg.inv(Ve) - tf.linalg.inv(vp))
+        # pseudo_noise = vp @ tf.linalg.inv(vp - Ve) @ Ve
+        # pseudo_noise = vp @ tf.linalg.inv(vp - Ve + Jitter) @ vp - vp
+        def A_inv_b(chol_A, b):
+            """Solves A^-1 b using using triagular solves
 
-        # pseudo_noise = vp @ tf.linalg.inv(vp - Ve ) @ Ve
-        # pseudo_noise = tf.linalg.inv(tf.linalg.inv(vp) - tf.linalg.inv(Ve))
+            .. math ::
+                A^{-1} b
+                = (L L^T)^{-1} b
+                = L^{-T} L^-1 b
+            """
+            return tf.linalg.triangular_solve(
+                tf.linalg.matrix_transpose(chol_A),
+                tf.linalg.triangular_solve(chol_A, b, lower=True),
+                lower=False,
+            )
+
         m = tf.transpose(Me - mp, (0, 2, 1))[:, :, :, None]
-        pseudo_y = mp + vp @ tf.linalg.triangular_solve(
-            tf.linalg.matrix_transpose(Lm),
-            tf.linalg.triangular_solve(Lm, m, lower=True),
-            lower=False,
-        )  # [P, L, N, 1]
+        pseudo_y = cs(mp + vp @ A_inv_b(Lm, m), "[P, L, N, 1]")
         # pseudo_y = mp + pseudo_noise @ tf.linalg.inv(Ve) @ (Me - mp)
 
-        # print(np.max(np.abs(pseudo_noise - pseudo_noise_old)))
-        # prediction
-        var = tf.linalg.inv(
-            tf.linalg.inv(vp[0, :, :])
-            + tf.reduce_sum(tf.linalg.inv(pseudo_noise), axis=0)
+        Lp = cs(tf.linalg.cholesky(vp + Jitter), "[broadcast P, broadcast L, N, N]")
+        Le = cs(tf.linalg.cholesky(Ve + Jitter), "[P, L, N, N]")
+        N = tf.shape(Le)[-1]
+
+        Sigma_p_inv = A_inv_b(Lp, tf.eye(N, dtype=Lp.dtype)[None, None])
+        Sigma_e_inv = A_inv_b(Le, tf.eye(N, dtype=Le.dtype)[None, None])
+
+        var_inv = cs(
+            Sigma_p_inv[0] + tf.reduce_sum(Sigma_e_inv - Sigma_p_inv, axis=0),
+            "[L, N, N]",
         )
+        var = A_inv_b(tf.linalg.cholesky(var_inv), tf.eye(N, dtype=Lp.dtype)[None])
+
         mean = var @ (
-            tf.linalg.inv(vp[0, :, :]) @ mp[0, :, :]
-            + tf.reduce_sum(tf.linalg.inv(pseudo_noise) @ pseudo_y, axis=0)
+            tf.reduce_sum((Sigma_e_inv - Sigma_p_inv) @ pseudo_y, axis=0)
+            + Sigma_p_inv[0] @ tf.transpose(mp, (2, 1, 0))
         )
 
         if not full_cov:
