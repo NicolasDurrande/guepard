@@ -7,9 +7,9 @@ import gpflow
 
 import guepard
 from guepard.utilities import get_gpr_submodels
+# %%
 
 
-#%%
 def plot_mean_conf(x, mean, var, ax, color='C0'):
     ax.plot(x, mean, color, lw=2)
     ax.fill_between(
@@ -30,54 +30,12 @@ def plot_model(m, ax, x=np.linspace(0, 1, 101)[:, None], plot_data=True, color='
     plot_mean_conf(x, mean, var, ax, color)
 
 # %%
-NOISE_VAR = 1e-1
-NUM_SPLIT = 3
-LN_NUM_DATA = 5  # num_datapoints = 2 ** LN_NUM_DATA + 1
-# %%
 
-X = np.linspace(0, 1, 2**LN_NUM_DATA + 1)[:, None]
-print("num data", len(X))
-kernel = gpflow.kernels.SquaredExponential(lengthscales=.1)
-Y = gpflow.models.GPR((np.c_[-10.], np.c_[0.]), kernel, noise_variance=NOISE_VAR).predict_f_samples(X)
-full_gpr = gpflow.models.GPR((X, Y), kernel, noise_variance=NOISE_VAR)
-# %%
-fig, ax = plt.subplots()
-ax.plot(X, Y, "kx")
-plot_model(full_gpr, ax=ax, plot_data=False)
+def get_data(num_data, kernel):
+    X = np.linspace(0, 1, num_data)[:, None]
+    Y = gpflow.models.GPR((np.c_[-10.], np.c_[0.]), kernel, noise_variance=NOISE_VAR).predict_f_samples(X)
+    return X, Y
 
-#%%
-x_list = np.array_split(X, NUM_SPLIT)  # list of num_split np.array
-y_list = np.array_split(Y, NUM_SPLIT)  
-datasets = list(zip(x_list, y_list))
-
-for i, data in enumerate(datasets):
-    X_, Y_ = data
-    print(len(X_), len(Y_))
-    plt.plot(X_, Y_, f"C{i%7}x")
-
-
-# %%
-# mean_function = gpflow.mean_functions.Constant(0.5)
-submodels = get_gpr_submodels(datasets, kernel, mean_function=None, noise_variance=NOISE_VAR) # list of num_split GPR models
-
-# M is a list of GPR models, let's plot them
-fig, axes = plt.subplots(1, len(datasets), figsize=(16, 4))
-if len(datasets) == 1:
-    axes = [axes]
-
-x = np.linspace(-.5, 1.5, 101)[:, None]
-[plot_model(m, ax, x) for ax, m in zip(axes, submodels)];
-[ax.plot(X, Y, 'kx', mew=1., alpha=.1) for ax, _ in zip(axes, submodels)];
-
-# %%
-m_agg = guepard.EquivalentObsEnsemble(submodels)
-
-fig, ax = plt.subplots(1, 1, figsize=(6, 4))
-plot_model(m_agg, ax, plot_data=False, color="C0")
-plot_model(full_gpr, ax, plot_data=False, color="C1")
-ax.plot(X, Y, "kx")
-
-# %%
 
 def get_subset_of_data(A: np.ndarray, step: int) -> np.ndarray:
     """
@@ -94,32 +52,15 @@ def get_subset_of_data(A: np.ndarray, step: int) -> np.ndarray:
         return A[middle_index - pad: middle_index + pad + 1]
 
 
-for step in range(LN_NUM_DATA + 1):
-    X_subset = get_subset_of_data(X, step)
-    assert len(X_subset) == 1 if step == 0 else (2 ** step + 1)
-    
-# %%
+def get_aggregate_model(X, Y, num_splits, kernel):
+    x_list = np.array_split(X, num_splits)  # list of num_split np.array
+    y_list = np.array_split(Y, num_splits)  
+    datasets = list(zip(x_list, y_list))
 
+    submodels = get_gpr_submodels(datasets, kernel, mean_function=None, noise_variance=NOISE_VAR) # list of num_split GPR models
+    m_agg = guepard.EquivalentObsEnsemble(submodels)
+    return m_agg
 
-mus = []
-sigmas = []
-len_x_subset = []
-
-for i in range(LN_NUM_DATA + 1):
-    print("=" * 30, i)
-    xx = get_subset_of_data(X, i)
-    m, v = m_agg.predict_f(xx)
-    mus.append(m.numpy().flatten()[len(xx) // 2])
-    sigmas.append(v.numpy().flatten()[len(xx) // 2] ** 0.5)
-    len_x_subset.append(len(xx))
-    print(len_x_subset[-1], mus[-1], sigmas[-1])
-# %%
-
-m, v = full_gpr.predict_f(get_subset_of_data(X, 0))
-m_full = m.numpy().flatten()[0]
-sigma_full = v.numpy().flatten()[0] ** 0.5
-print(m_full, sigma_full)
-# %%
 
 def kl_univariate_gaussians(mu_1, sigma_1, mu_2, sigma_2):
     """
@@ -129,32 +70,76 @@ def kl_univariate_gaussians(mu_1, sigma_1, mu_2, sigma_2):
     a = (sigma_1**2 + (mu_1 - mu_2) **2) / (2. * sigma_2**2)
     return logs + a - 0.5
 
-kls = [
-    kl_univariate_gaussians(m, s, m_full, sigma_full) for m, s in zip(mus, sigmas)
-]
 
-colors = cm.viridis(np.linspace(0, 1, len(kls)))
+def compare_full_vs_agg(X, full, agg):
+    mus = []
+    sigmas = []
+    len_x_subset = []
 
-plt.scatter(len_x_subset, kls, color=colors)
-plt.ylabel("KL divergence")
-plt.xlabel("size X*")
-# plt.xticks(range(11), [fr"$2^{{{step}}}$" for step in range(11)])
-plt.yscale("log")
-plt.savefig('acc_vs_test_size__kl_div.png', facecolor="white", transparent=False)
+    for i in range(LN_NUM_DATA + 1):
+        xx = get_subset_of_data(X, i)
+        m, v = agg.predict_f(xx)
+        mus.append(m.numpy().flatten()[len(xx) // 2])
+        sigmas.append(v.numpy().flatten()[len(xx) // 2] ** 0.5)
+        len_x_subset.append(len(xx))
+
+    m, v = full.predict_f(get_subset_of_data(X, 0))
+    m_full = m.numpy().flatten()[0]
+    sigma_full = v.numpy().flatten()[0] ** 0.5
+
+    kls = [
+        kl_univariate_gaussians(m, s, m_full, sigma_full) for m, s in zip(mus, sigmas)
+    ]
+
+    return len_x_subset, kls
 
 # %%
-theta_1 = np.array(mus) / np.array(sigmas)**2.
-theta_2 = 1. / (2 * np.array(sigmas)**2.)
+NOISE_VAR = 1e-1
+LN_NUM_DATA = 5  # num_datapoints = 2 ** LN_NUM_DATA + 1
+REPS_ITER = range(5)
+NUM_SPLITS_ITER = range(2, 6)
+KERNEL = gpflow.kernels.SquaredExponential(lengthscales=.1)
+
+results = []
+
+import itertools as it
+import pandas as pd
 
 
-colors = cm.viridis(np.linspace(0, 1, len(theta_1)))
+for rep, num_splits in it.product(REPS_ITER, NUM_SPLITS_ITER):
+    print(rep, num_splits)
+    X, Y = get_data(2 ** LN_NUM_DATA + 1, KERNEL)
+    full_gpr = gpflow.models.GPR((X, Y), KERNEL, noise_variance=NOISE_VAR)
+    agg_gpr = get_aggregate_model(X, Y, num_splits, KERNEL)
+    size, kl = compare_full_vs_agg(X, full_gpr, agg_gpr)
+    results.extend({"rep": rep, "num_splits": num_splits, "kl": k, "size": s} for s,k in zip(size, kl))
 
-plt.scatter(theta_1, theta_2, color=colors)
-plt.plot(m_full / sigma_full**2, 1. / (2 * sigma_full**2), "kx", ms=10, label="GPR prediction at 0.5")
-plt.loglog()
-plt.legend(loc="upper left")
-plt.xlabel(r"$\theta_1$")
-plt.ylabel(r"$-\theta_2$")
-plt.savefig('acc_vs_test_size_parameter_space.png', facecolor="white", transparent=False)
+#%%
+df = pd.DataFrame(results)
+df
 
+def err(x):
+    err = 1.96 * x.std() / np.sqrt(len(x))
+    return err
+
+# %%
+df = df.groupby(["num_splits", "size"]).agg(
+    {
+        "rep": "count",
+        "kl": ["mean", "std", err]
+    }
+)
+df
+# %%
+
+for i, num_splits in enumerate(NUM_SPLITS_ITER):
+    r = df.xs(num_splits, axis=0, level="num_splits")
+    x, m, e = r.index.values, r["kl", "mean"].values, r["kl", "err"]
+    plt.plot(x, m, f"C{i}x-", label=f"P = {num_splits}")
+    plt.yscale('log')
+    plt.fill_between(x, np.maximum(m - e, m), m + e, color=f"C{i}", alpha=.2,)
+
+plt.legend(loc="lower left")
+plt.ylabel("KL divergence")
+plt.xlabel("Size X*")
 # %%
