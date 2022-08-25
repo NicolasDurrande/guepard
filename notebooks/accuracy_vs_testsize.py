@@ -1,12 +1,13 @@
 # %%
+import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
-import matplotlib.cm as cm
 
 import gpflow
 
 import guepard
 from guepard.utilities import get_gpr_submodels
+
 # %%
 
 
@@ -103,8 +104,8 @@ KERNEL = gpflow.kernels.SquaredExponential(lengthscales=.1)
 results = []
 
 import itertools as it
-import pandas as pd
 
+import pandas as pd
 
 for rep, num_splits in it.product(REPS_ITER, NUM_SPLITS_ITER):
     print(rep, num_splits)
@@ -142,4 +143,5 @@ for i, num_splits in enumerate(NUM_SPLITS_ITER):
 plt.legend(loc="lower left")
 plt.ylabel("KL divergence")
 plt.xlabel("Size X*")
+plt.savefig("pred_acc__vs__test_size.png", transparent=False, facecolor="white")
 # %%
