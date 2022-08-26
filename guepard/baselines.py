@@ -44,7 +44,8 @@ class WeightingMethods(Enum):
     "mu_s: [N, L, P]  # N: num data, L: num latent, P: num experts",
     "var_s: [N, L, P]",
     "power: []",
-    "prior_var: [N, broadcast L, broadcast P]" "return: [N, L, P]",
+    "prior_var: [N, broadcast L, broadcast P]",
+    "return: [N, L, P]",
 )
 def compute_weights(
     mu_s: tf.Tensor,
@@ -81,7 +82,8 @@ def compute_weights(
             return wass**power
 
     elif weighting == WeightingMethods.UNI:
-        return tf.ones_like(mu_s) / tf.shape(mu_s)[0]
+        num_experts = tf.cast(tf.shape(mu_s)[-1], mu_s.dtype)
+        return tf.ones_like(mu_s) / num_experts
 
     elif weighting == WeightingMethods.ENT:
         return 0.5 * (tf.math.log(prior_var) - tf.math.log(var_s))
@@ -91,6 +93,13 @@ def compute_weights(
 
     else:
         raise NotImplementedError("Unknown weighting passed to compute_weights.")
+
+
+
+def normalize_weights(weight_matrix):
+    sum_weights = tf.reduce_sum(weight_matrix, axis=-1, keepdims=True)
+    weight_matrix = weight_matrix / sum_weights
+    return weight_matrix
 
 
 class Ensemble(GPModel):
@@ -103,7 +112,7 @@ class Ensemble(GPModel):
         models: List[GPModel],
         method: EnsembleMethods,
         weighting: WeightingMethods,
-        power: float,
+        power: float = 8.0,
     ):
         """
         :param models: A list of GPflow models with the same prior and likelihood.
@@ -206,28 +215,29 @@ class Ensemble(GPModel):
             prec = cs(tf.reduce_sum(prec_s, axis=-1), f"[N, {b} L]")
 
         elif self.method == EnsembleMethods.GPOE:
-            weight_matrix = tf.linalg.normalize(weight_matrix, ord=1, axis=-1)
+            # weight_matrix = tf.linalg.normalize(weight_matrix, ord=1, axis=-1)
+            weight_matrix = normalize_weights(weight_matrix)
             prec = tf.reduce_sum(weight_matrix * prec_s, axis=-1)
 
         elif self.method == EnsembleMethods.BCM:
-            num_experts = tf.shape(Me)[-1] * 1.0
-            prec = tf.reduce_sum(prec_s, axis=-1) + (1.0 - num_experts) / vp
+            num_experts = tf.cast(tf.shape(vp)[-1], vp.dtype)
+            prec = tf.reduce_sum(prec_s, axis=-1) + (1.0 - num_experts) / vp[..., 0]
 
         elif self.method == EnsembleMethods.RBCM:
             prec = (
                 tf.reduce_sum(weight_matrix * prec_s, axis=-1)
-                + (1.0 - tf.reduce_sum(weight_matrix, axis=-1)) / vp
+                + (1.0 - tf.reduce_sum(weight_matrix, axis=-1)) / vp[..., 0]
             )
-
-        prec = cs(prec, f"[N, {b} L]")
 
         # Compute the aggregated predictive means and variance of the barycenter
         if self.method == EnsembleMethods.BARY:
-            weight_matrix = tf.linalg.normalize(weight_matrix, ord=1, axis=-1)
+            # weight_matrix = tf.linalg.normalize(weight_matrix, ord=1, axis=-1)
+            weight_matrix = normalize_weights(weight_matrix)
             mu = tf.reduce_sum(weight_matrix * Me, axis=-1)
             var = tf.reduce_sum(weight_matrix * Ve, axis=-1)
         # For all DgPs compute the aggregated predictive means and variance
         else:
+            prec = cs(prec, f"[N, {b} L]")
             var = 1.0 / prec
             mu = var * tf.reduce_sum(weight_matrix * prec_s * Me, axis=-1)
 
