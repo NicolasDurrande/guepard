@@ -95,7 +95,6 @@ def compute_weights(
         raise NotImplementedError("Unknown weighting passed to compute_weights.")
 
 
-
 def normalize_weights(weight_matrix):
     sum_weights = tf.reduce_sum(weight_matrix, axis=-1, keepdims=True)
     weight_matrix = weight_matrix / sum_weights

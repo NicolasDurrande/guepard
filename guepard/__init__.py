@@ -10,5 +10,5 @@ __all__ = [
     "EquivalentObsEnsemble",
     "Ensemble",
     "EnsembleMethods",
-    "WeightingMethods"
+    "WeightingMethods",
 ]

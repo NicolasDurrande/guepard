@@ -1,14 +1,15 @@
 # %%
-import numpy as np
-import gpflow
-import tensorflow as tf
 import matplotlib.pyplot as plt
+import numpy as np
+import tensorflow as tf
+
+import gpflow
+from gpflow.experimental.check_shapes import disable_check_shapes
 
 import guepard
+from guepard.baselines import Ensemble, EnsembleMethods, WeightingMethods
 from guepard.utilities import get_gpr_submodels
-from guepard.baselines import EnsembleMethods, WeightingMethods, Ensemble
 
-from gpflow.experimental.check_shapes import disable_check_shapes
 # %%
 
 
