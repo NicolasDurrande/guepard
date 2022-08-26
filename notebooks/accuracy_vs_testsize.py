@@ -143,5 +143,6 @@ for i, num_splits in enumerate(NUM_SPLITS_ITER):
 plt.legend(loc="lower left")
 plt.ylabel("KL divergence")
 plt.xlabel("Size X*")
+plt.savefig("pred_acc__vs__test_size.pdf")
 plt.savefig("pred_acc__vs__test_size.png", transparent=False, facecolor="white")
 # %%
