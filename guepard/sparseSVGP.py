@@ -1,29 +1,32 @@
 from typing import List, Optional
-from gpflow.inducing_variables import InducingVariables
-from gpflow.kernels import Kernel
-from gpflow.likelihoods import Likelihood
-from gpflow.mean_functions import MeanFunction
+
 import tensorflow as tf
 
 import gpflow
-from gpflow.base import InputData, MeanAndVariance, RegressionData, Parameter
-from gpflow.experimental.check_shapes import check_shapes, inherit_check_shapes
-from gpflow.models import GPModel, ExternalDataTrainingLossMixin
+from gpflow.base import InputData, MeanAndVariance, Parameter, RegressionData
 from gpflow.config import default_float
+from gpflow.experimental.check_shapes import check_shapes, inherit_check_shapes
+from gpflow.kernels import Kernel
+from gpflow.likelihoods import Likelihood
+from gpflow.mean_functions import MeanFunction
+from gpflow.models import ExternalDataTrainingLossMixin, GPModel
 from gpflow.utilities import triangular
 
+
 class SparseSVGP(GPModel, ExternalDataTrainingLossMixin):
-    def __init__(self,
-            kernel: Kernel,
-            likelihood: Likelihood,
-            inducing_variables: List[tf.Tensor],
-            *,
-            mean_function: Optional[MeanFunction] = None,
-            num_latent_gps: int = 1,
-            q_mus: Optional[List[tf.Tensor]] = None,
-            q_sqrts: Optional[List[tf.Tensor]] = None,
-            whiten: bool = True,
-            num_data: Optional[tf.Tensor] = None):
+    def __init__(
+        self,
+        kernel: Kernel,
+        likelihood: Likelihood,
+        inducing_variables: List[tf.Tensor],
+        q_mus: List[tf.Tensor],
+        q_sqrts: List[tf.Tensor],
+        *,
+        mean_function: Optional[MeanFunction] = None,
+        num_latent_gps: int = 1,
+        whiten: bool = True,
+        num_data: Optional[tf.Tensor] = None,
+    ):
 
         super().__init__(kernel, likelihood, mean_function, num_latent_gps)
         self.num_data = num_data
@@ -33,10 +36,9 @@ class SparseSVGP(GPModel, ExternalDataTrainingLossMixin):
         Z = tf.concat(inducing_variables, axis=0)
         # self.inducing_variable: InducingVariables = gpflow.models.util.inducingpoint_wrapper(Z)
         self.inducing_variable = gpflow.inducing_variables.InducingPoints(Z)
-        
+
         self.q_mu = Parameter(tf.concat(q_mus, axis=0), dtype=default_float())
-        self.q_sqrts = [Parameter(q_sqrt, transform=triangular()) for q_sqrt in q_sqrts] 
-        
+        self.q_sqrts = [Parameter(q_sqrt, transform=triangular()) for q_sqrt in q_sqrts]
 
     def predict_f(
         self, Xnew: InputData, full_cov: bool = False, full_output_cov: bool = False
@@ -52,7 +54,10 @@ class SparseSVGP(GPModel, ExternalDataTrainingLossMixin):
         kmm = self.kernel(self.inducing_variable.Z)
         knn = self.kernel(Xnew, full_cov=full_cov)
         kmn = self.kernel(self.inducing_variable.Z, Xnew)
-        cov_blocks = [tf.linalg.LinearOperatorFullMatrix(q_sqrt @ tf.transpose(q_sqrt, [0, 2, 1])) for q_sqrt in self.q_sqrts]
+        cov_blocks = [
+            tf.linalg.LinearOperatorFullMatrix(q_sqrt @ tf.transpose(q_sqrt, [0, 2, 1]))
+            for q_sqrt in self.q_sqrts
+        ]
         q_sigma = tf.linalg.LinearOperatorBlockDiag(cov_blocks).to_dense()
         kmm_plus_s = kmm + q_sigma[0, :, :]
         f_mean_zero, f_var = gpflow.conditionals.base_conditional(
@@ -65,7 +70,9 @@ class SparseSVGP(GPModel, ExternalDataTrainingLossMixin):
         "return: []",
     )
     def prior_kl(self) -> tf.Tensor:
-        f_mean, f_var = self.predict_f(self.inducing_variable.Z, full_cov=True, full_output_cov=False)
+        f_mean, f_var = self.predict_f(
+            self.inducing_variable.Z, full_cov=True, full_output_cov=False
+        )
         f_sqrt = tf.linalg.cholesky(f_var)
         return gpflow.kullback_leiblers.prior_kl(
             self.inducing_variable, self.kernel, f_mean, f_sqrt, whiten=False

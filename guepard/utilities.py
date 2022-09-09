@@ -1,13 +1,18 @@
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
+import numpy as np
 from scipy.cluster.vq import kmeans
+from tensorflow import Tensor
 
 import gpflow
 from gpflow.base import RegressionData
 from gpflow.kernels import Kernel
+from gpflow.likelihoods import Likelihood
 from gpflow.mean_functions import MeanFunction
 from gpflow.models.gpr import GPR
 from gpflow.models.svgp import SVGP
+
+from .equivalentobs import EquivalentObsEnsemble
 
 
 def get_gpr_submodels(
@@ -31,8 +36,8 @@ def get_svgp_submodels(
     data_list: List[RegressionData],
     num_inducing_list: List[int],
     kernel: Kernel,
+    likelihood: Optional[Likelihood] = gpflow.likelihoods.Gaussian(variance=0.1),
     mean_function: Optional[MeanFunction] = None,
-    noise_variance: float = 0.1,
     maxiter: int = 100,
 ) -> List[SVGP]:
     """
@@ -45,8 +50,6 @@ def get_svgp_submodels(
     ), "Please specify equal number of inducing points configs as number of datasets passed."
     if mean_function is None:
         mean_function = gpflow.mean_functions.Zero()
-
-    likelihood = gpflow.likelihoods.Gaussian(variance=noise_variance)
 
     def _create_submodel(data: RegressionData, num_inducing: int) -> SVGP:
         num_data = len(data[0])
@@ -76,3 +79,28 @@ def get_svgp_submodels(
         _create_submodel(data, M) for data, M in zip(data_list, num_inducing_list)
     ]
     return models
+
+
+def init_ssvgp_with_ensemble(
+    M: List[SVGP],
+) -> Tuple[List[Tensor], List[Tensor], List[Tensor]]:
+    m_ens = EquivalentObsEnsemble(M)
+    Zs = [m.inducing_variable.Z for m in M]
+    ind_Zi = [0] + list(np.cumsum([Zi.shape[0] for Zi in Zs]))
+
+    Z = np.vstack(Zs)
+    q_m, q_v = m_ens.predict_f(Z, full_cov=True)
+
+    inv_noise = np.linalg.inv(q_v[0]) - np.linalg.inv(m_ens.kernel(Z))
+    q_sigmas = [
+        np.linalg.inv(inv_noise[i:j, i:j]) for i, j in zip(ind_Zi[:-1], ind_Zi[1:])
+    ]
+    print([np.linalg.eigvalsh(q_sigma) for q_sigma in q_sigmas])
+    q_sqrts = [np.linalg.cholesky(q_sigma)[None, :, :] for q_sigma in q_sigmas]
+
+    q_mu = (
+        np.eye(50) + np.linalg.inv(m_ens.kernel(Z) @ np.linalg.inv(q_v[0]) - np.eye(50))
+    ) @ q_m
+    q_mus = [q_mu[i:j] for i, j in zip(ind_Zi[:-1], ind_Zi[1:])]
+
+    return Zs, q_mus, q_sqrts
