@@ -2,6 +2,7 @@
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 import gpflow
 
@@ -50,6 +51,7 @@ def get_subset_of_data(A: np.ndarray, step: int) -> np.ndarray:
         return A[[middle_index]]
     else:
         pad = int(2 ** (step - 1))  # 1, 2, 4, 8, ...
+        return np.linspace(0, 1, 2**(step)+1)[:, None]
         return A[middle_index - pad: middle_index + pad + 1]
 
 
@@ -97,15 +99,13 @@ def compare_full_vs_agg(X, full, agg):
 # %%
 NOISE_VAR = 1e-1
 LN_NUM_DATA = 5  # num_datapoints = 2 ** LN_NUM_DATA + 1
-REPS_ITER = range(5)
-NUM_SPLITS_ITER = range(2, 6)
-KERNEL = gpflow.kernels.SquaredExponential(lengthscales=.1)
+REPS_ITER = range(25)
+NUM_SPLITS_ITER = range(3, 10, 2)
+KERNEL = gpflow.kernels.SquaredExponential(lengthscales=.4)
 
 results = []
 
 import itertools as it
-
-import pandas as pd
 
 for rep, num_splits in it.product(REPS_ITER, NUM_SPLITS_ITER):
     print(rep, num_splits)
@@ -116,11 +116,26 @@ for rep, num_splits in it.product(REPS_ITER, NUM_SPLITS_ITER):
     results.extend({"rep": rep, "num_splits": num_splits, "kl": k, "size": s} for s,k in zip(size, kl))
 
 #%%
+X, Y = get_data(2 ** LN_NUM_DATA + 1, KERNEL)
+
+for i in range(LN_NUM_DATA + 1):
+    plt.plot(X, 0*X + i, 'kx')
+    xx = get_subset_of_data(X, i)
+    plt.plot(xx, 0*xx + i, 'C0o')
+
+#%%
+df = pd.DataFrame(results)
+for i, num_splits in enumerate(NUM_SPLITS_ITER): 
+    plt.plot(df[df.num_splits==num_splits]['size']+.3 * i, df[df.num_splits==num_splits].kl, f'C{i}.')
+
+plt.yscale('log')
+
+#%%
 df = pd.DataFrame(results)
 df
 
 def err(x):
-    err = 1.96 * x.std() / np.sqrt(len(x))
+    err = 1.96 * x.std()
     return err
 
 # %%
@@ -138,7 +153,7 @@ for i, num_splits in enumerate(NUM_SPLITS_ITER):
     x, m, e = r.index.values, r["kl", "mean"].values, r["kl", "err"]
     plt.plot(x, m, f"C{i}x-", label=f"P = {num_splits}")
     plt.yscale('log')
-    plt.fill_between(x, np.maximum(m - e, m), m + e, color=f"C{i}", alpha=.2,)
+    plt.fill_between(x, m - e, m + e, color=f"C{i}", alpha=.2,)
 
 plt.legend(loc="lower left")
 plt.ylabel("KL divergence")
