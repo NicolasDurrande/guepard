@@ -10,10 +10,10 @@ from guepard.utilities import get_svgp_submodels, init_ssvgp_with_ensemble
 np.random.seed(123456)
 
 
-@pytest.mark.parametrize("num_latent", [1])
+@pytest.mark.parametrize("num_latent", [1, 3])
 def test_predict_f(num_latent):
-    dim = 3
-    num_data = 200
+    dim = 4
+    num_data = 50
     num_split = 2
     np.random.seed(0)
 
@@ -27,11 +27,13 @@ def test_predict_f(num_latent):
     Xl = np.array_split(X, num_split)  # in practice, kmeans clustering is recommended
     Yl = np.array_split(Y, num_split)
 
-    kernel = gpflow.kernels.Matern12()
+    kernel = gpflow.kernels.Matern12(lengthscales=0.2)
+    gpflow.set_trainable(kernel, False)
     lik = gpflow.likelihoods.Bernoulli()
+    gpflow.set_trainable(lik, False)
 
     # get submodels and create a sparse SVGP
-    M = get_svgp_submodels(list(zip(Xl, Yl)), (5,) * num_split, kernel,likelihood=lik, maxiter=-1)
+    M = get_svgp_submodels(list(zip(Xl, Yl)), (3,) * num_split, kernel,likelihood=lik, maxiter=2)
     Zs, q_mus, q_sqrts = init_ssvgp_with_ensemble(M) 
     m_ssvgp = guepard.SparseSVGP(kernel, lik, Zs, q_mus, q_sqrts, whiten=False)
 

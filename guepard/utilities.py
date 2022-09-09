@@ -9,8 +9,7 @@ from gpflow.base import RegressionData
 from gpflow.kernels import Kernel
 from gpflow.likelihoods import Likelihood
 from gpflow.mean_functions import MeanFunction
-from gpflow.models.gpr import GPR
-from gpflow.models.svgp import SVGP
+from gpflow.models import GPModel, SVGP, GPR
 
 from .equivalentobs import EquivalentObsEnsemble
 
@@ -80,7 +79,6 @@ def get_svgp_submodels(
     ]
     return models
 
-
 def init_ssvgp_with_ensemble(
     M: List[SVGP],
 ) -> Tuple[List[Tensor], List[Tensor], List[Tensor]]:
@@ -89,17 +87,18 @@ def init_ssvgp_with_ensemble(
     ind_Zi = [0] + list(np.cumsum([Zi.shape[0] for Zi in Zs]))
 
     Z = np.vstack(Zs)
+    num_inducing = Z.shape[0]
+
     q_m, q_v = m_ens.predict_f(Z, full_cov=True)
 
     inv_noise = np.linalg.inv(q_v[0]) - np.linalg.inv(m_ens.kernel(Z))
     q_sigmas = [
         np.linalg.inv(inv_noise[i:j, i:j]) for i, j in zip(ind_Zi[:-1], ind_Zi[1:])
     ]
-    print([np.linalg.eigvalsh(q_sigma) for q_sigma in q_sigmas])
     q_sqrts = [np.linalg.cholesky(q_sigma)[None, :, :] for q_sigma in q_sigmas]
 
     q_mu = (
-        np.eye(50) + np.linalg.inv(m_ens.kernel(Z) @ np.linalg.inv(q_v[0]) - np.eye(50))
+        np.eye(num_inducing) + np.linalg.inv(m_ens.kernel(Z) @ np.linalg.inv(q_v[0]) - np.eye(num_inducing))
     ) @ q_m
     q_mus = [q_mu[i:j] for i, j in zip(ind_Zi[:-1], ind_Zi[1:])]
 
