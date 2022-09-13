@@ -81,7 +81,7 @@ def get_svgp_submodels(
 
 
 def init_ssvgp_with_ensemble(
-    M: List[SVGP],
+    M: List[SVGP], add_jitter: Optional[bool]=False
 ) -> Tuple[List[Tensor], List[Tensor], List[Tensor]]:
     m_ens = EquivalentObsEnsemble(M)
     Zs = [m.inducing_variable.Z for m in M]
@@ -96,6 +96,11 @@ def init_ssvgp_with_ensemble(
     q_sigmas = [
         np.linalg.inv(inv_noise[i:j, i:j]) for i, j in zip(ind_Zi[:-1], ind_Zi[1:])
     ]
+
+    if add_jitter:
+        jitter = gpflow.config.default_jitter()
+        q_sigmas = [q_sigma + jitter * np.eye(q_sigma.shape[0]) for q_sigma in q_sigmas]
+
     q_sqrts = [np.linalg.cholesky(q_sigma)[None, :, :] for q_sigma in q_sigmas]
 
     q_mu = (
