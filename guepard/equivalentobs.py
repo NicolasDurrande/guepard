@@ -156,6 +156,10 @@ class EquivalentObsEnsemble(GPModel):
 
         return tf.transpose(mean[:, :, 0]), var
 
+    def predict_y_marginals(self, Xnew: InputData) -> MeanAndVariance:
+        m, v = self.predict_f_marginals(Xnew)
+        return self.likelihood.predict_mean_and_var(Xnew, m, v)
+
     def predict_f_marginals(self, Xnew: InputData) -> MeanAndVariance:
         """
         Fastest method for aggregating marginal submodel predictions.
