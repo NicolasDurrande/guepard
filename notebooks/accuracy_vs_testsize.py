@@ -100,9 +100,9 @@ def compare_full_vs_agg(X, full, agg):
 NOISE_VAR = 1e-1
 LN_NUM_DATA = 5  # num_datapoints = 2 ** LN_NUM_DATA + 1
 REPS_ITER = range(25)
-NUM_SPLITS_ITER = range(3, 10, 2)
-KERNEL = gpflow.kernels.SquaredExponential(lengthscales=.4)
-
+NUM_SPLITS_ITER = range(2, 10, 2)
+KERNEL = gpflow.kernels.SquaredExponential(lengthscales=.25)
+# %%
 results = []
 
 import itertools as it
@@ -126,14 +126,53 @@ for i in range(LN_NUM_DATA + 1):
 #%%
 df = pd.DataFrame(results)
 for i, num_splits in enumerate(NUM_SPLITS_ITER): 
-    plt.plot(df[df.num_splits==num_splits]['size']+.3 * i, df[df.num_splits==num_splits].kl, f'C{i}.')
+    x_ = df[df.num_splits==num_splits]['size']+.3 * i
+    y_ = df[df.num_splits==num_splits].kl
+    plt.plot(x_, y_, f'C{i}.')
 
 plt.yscale('log')
 
 #%%
 df = pd.DataFrame(results)
 df
+print(df)
+# plt.figure()
+fig, ax = plt.subplots(figsize=(5, 3))
+def box_plot(data, x, label, edge_color, fill_color, manage_ticks=False):
+    bp = ax.boxplot(data, positions=[x], patch_artist=True, manage_ticks=manage_ticks, showfliers=False, widths=.3)
+    
+    for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
+        plt.setp(bp[element], color=edge_color)
 
+    for patch in bp['boxes']:
+        patch.set(facecolor=fill_color)       
+        patch.set(alpha=.6)       
+    
+
+
+    return bp
+
+bps = []
+for i, num_splits in enumerate(NUM_SPLITS_ITER):
+    for j in range(LN_NUM_DATA + 1):
+        s = len(get_subset_of_data(X, j))
+        data = df[(df.num_splits==num_splits) & (df['size'] == s)]['kl'].values
+        x = s - .5 + (0.3 * i)
+        bp = box_plot(data, x, i, edge_color=f'C{i}', fill_color=f'C{i}')
+        if j == 0:
+            bps.append(bp)
+
+labels = map(lambda s: f"P = {s}", NUM_SPLITS_ITER)
+ax.legend([bp["boxes"][0] for bp in bps], labels, loc='upper right')
+
+plt.xticks([1, 3, 5, 9, 17, 33])
+plt.yscale('log')
+plt.xlabel("$|X^*|$")
+plt.ylabel("KL")
+plt.tight_layout()
+plt.savefig("pred_acc__vs__test_size.pdf")
+plt.savefig("pred_acc__vs__test_size.png", transparent=False, facecolor="white")
+# %%
 def err(x):
     err = 1.96 * x.std()
     return err
@@ -160,4 +199,35 @@ plt.ylabel("KL divergence")
 plt.xlabel("Size X*")
 plt.savefig("pred_acc__vs__test_size.pdf")
 plt.savefig("pred_acc__vs__test_size.png", transparent=False, facecolor="white")
+# %%
+
+num_splits = 4
+X, Y = get_data(2 ** LN_NUM_DATA + 1, KERNEL)
+X_test = get_subset_of_data(X, 3)
+Y_test = np.array([
+    Y[np.argmin((X - x)**2)] for x in X_test
+])
+# %%
+
+plt.figure(figsize=(5,3))
+
+x_list = np.array_split(X, num_splits)  # list of num_split np.array
+y_list = np.array_split(Y, num_splits)  
+datasets = list(zip(x_list, y_list))
+for i, (X_, Y_) in enumerate(datasets):
+    plt.plot(X_, Y_, f'C{i}x', label=f"Data submodel {i+1}")
+
+plt.plot(X_test[len(X_test)//2], Y_test[len(X_test)//2], "k*", ms=15, label="$x^*=0.5$")
+plt.plot(X_test, Y_test, "ko", label=f"$X^*$")
+plt.legend(ncol=2)
+plt.xlabel("$x$")
+plt.ylabel("Data")
+plt.tight_layout()
+plt.savefig("experiment_setup.pdf")
+plt.savefig("experiment_setup.png", transparent=False, facecolor="white")
+plt.show()
+# %%
+
+print(xx)
+# plt.plot(X_, Y_, f'C{i}x')
 # %%
