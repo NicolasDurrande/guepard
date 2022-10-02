@@ -139,7 +139,7 @@ print(df)
 # plt.figure()
 fig, ax = plt.subplots(figsize=(5, 3))
 def box_plot(data, x, label, edge_color, fill_color, manage_ticks=False):
-    bp = ax.boxplot(data, positions=[x], patch_artist=True, manage_ticks=manage_ticks, showfliers=False, widths=.3)
+    bp = ax.boxplot(data, positions=[x], patch_artist=True, manage_ticks=manage_ticks, showfliers=False, widths=.2)
     
     for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
         plt.setp(bp[element], color=edge_color)
@@ -157,7 +157,7 @@ for i, num_splits in enumerate(NUM_SPLITS_ITER):
     for j in range(LN_NUM_DATA + 1):
         s = len(get_subset_of_data(X, j))
         data = df[(df.num_splits==num_splits) & (df['size'] == s)]['kl'].values
-        x = s - .5 + (0.3 * i)
+        x = 2 * j + (i * .3) - .45
         bp = box_plot(data, x, i, edge_color=f'C{i}', fill_color=f'C{i}')
         if j == 0:
             bps.append(bp)
@@ -165,13 +165,14 @@ for i, num_splits in enumerate(NUM_SPLITS_ITER):
 labels = map(lambda s: f"P = {s}", NUM_SPLITS_ITER)
 ax.legend([bp["boxes"][0] for bp in bps], labels, loc='upper right')
 
-plt.xticks([1, 3, 5, 9, 17, 33])
-plt.yscale('log')
+plt.xticks(2 * np.arange(6), df['size'].unique())
+# plt.yscale('log')
 plt.xlabel("$|X^*|$")
-plt.ylabel("KL")
+plt.ylabel("$\mathrm{KL}$")
 plt.tight_layout()
-plt.savefig("pred_acc__vs__test_size.pdf")
-plt.savefig("pred_acc__vs__test_size.png", transparent=False, facecolor="white")
+plt.savefig("kl__vs__test_size.pdf")
+plt.savefig("kl__vs__test_size.png", transparent=False, facecolor="white")
+
 # %%
 def err(x):
     err = 1.96 * x.std()
