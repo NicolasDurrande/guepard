@@ -23,8 +23,10 @@ Dataset = namedtuple("Dataset", ["X", "Y", "X_test", "Y_test"])
 
 class Config:
     # Number of models in the ensemble
-    num_models_in_ensemble = 500
+    num_models_in_ensemble = 10
+    num_inducing = 500
     num_data = 1_000_000
+    batch_size = 64
 
 
 def get_data():
@@ -41,33 +43,63 @@ def get_data():
 def build_model(data) -> guepard.EquivalentObsEnsemble:
     num_data, X_dim = data.X.shape
     _, label_X = vq.kmeans2(data.X, Config.num_models_in_ensemble, minit="points")
-    datasets = [
+    data_list = [
         (data.X[label_X == p, :], data.Y[label_X == p, :])
         for p in range(Config.num_models_in_ensemble)
     ]
     print("Max size:")
-    print(max([len(x) for x,y in datasets]))
+    print(max([len(x) for x,y in data_list]))
 
-    kernel = gpflow.kernels.Matern32(lengthscales=np.ones(X_dim))
-    submodels = guepard.utilities.get_gpr_submodels(
-        datasets, kernel, mean_function=None, noise_variance=1e-3
+    kernel = gpflow.kernels.Matern32(lengthscales=np.ones((X_dim,)) * 1e-3)
+    
+    submodels = guepard.utilities.get_svgp_submodels(
+        data_list=data_list,
+        num_inducing_list=[Config.num_inducing] * Config.num_models_in_ensemble,
+        kernel=kernel,
+        mean_function=None,
+        likelihood=gpflow.likelihoods.Bernoulli(),
+        maxiter=0,
     )
     ensemble = guepard.EquivalentObsEnsemble(submodels)
+    gpflow.utilities.print_summary(ensemble)
+    
+    def _create_dataset(data):
+        dataset = tf.data.Dataset.from_tensor_slices(data)
+        dataset = dataset.shuffle(buffer_size=10_000)
+        dataset = dataset.repeat()
+        dataset = dataset.batch(batch_size=Config.batch_size)
+        dataset = dataset.prefetch(tf.data.AUTOTUNE)
+        return iter(dataset)
 
-    gpflow.optimizers.scipy.Scipy().minimize(
-        tf.function(lambda: ensemble.training_loss(datasets)),
-        ensemble.trainable_variables,
-        options={"disp": True, "maxiter": 20},
-    )
+    dataset_list = list(map(_create_dataset, data_list))
+
+    @tf.function
+    def step() -> tf.Tensor:
+        batch_list = list(map(next, dataset_list))
+        loss = lambda: ensemble.training_loss(batch_list)
+        opt.minimize(loss, ensemble.trainable_variables)
+        return loss()
+
+    opt = tf.keras.optimizers.Adam()
+    maxiter = 2_000
+    for i in range(maxiter):
+        loss_ = step()
+        if i % 10 == 0:
+            print(i, loss_.numpy())
+            # print(".", end="", flush=True)
+    print()
+
+    gpflow.utilities.print_summary(ensemble)
 
     return ensemble
 
 
-def evaluate(predict_y_func: Callable, data: Dataset, batch_size: int = 2048):
+def evaluate(predict_y_func: Callable, data: Dataset, batch_size: int = 2048, name: str = 'auc'):
     def predict_in_batches(X_eval):
         num_data_test = len(X_eval)
         y_predict = []
         for k in range(0, num_data_test, batch_size):
+            print(f"{k} / {num_data_test}")
             X_test_batch = X_eval[k : k + batch_size]
             y_pred, _ = predict_y_func(X_test_batch)
             y_predict.append(y_pred)
@@ -75,17 +107,14 @@ def evaluate(predict_y_func: Callable, data: Dataset, batch_size: int = 2048):
         assert len(y_predict) == num_data_test
         return y_predict
 
-    fig, (ax1, ax2) = plt.subplots(1, 2)
+    fig, ax1 = plt.subplots(1, 1)
     y_test_true = data.Y_test.ravel()
     y_test_predict = predict_in_batches(data.X_test)
     auc_test = plot_roc(
         y_test_predict, y_test_true, name="Ensemble", title="test data", ax=ax1
     )
-    y_true = data.Y.ravel()
-    y_predict = predict_in_batches(data.X)
-    auc_train = plot_roc(y_predict, y_true, name="Ensemble", title="train data", ax=ax2)
-    plt.savefig("AUC.png")
-    return {"auc_test": auc_test, "auc_train": auc_train}
+    plt.savefig(f"{name}.png")
+    return {f"{name}_auc_test": auc_test}
 
 
 def plot_roc(
@@ -126,10 +155,12 @@ if __name__ == "__main__":
     print("Building")
     model = build_model(data)
     print("Testing")
-    AUCs = evaluate(model.predict_y, data, batch_size=2048)
+
+    AUCs = evaluate(model.predict_y_marginals, data, batch_size=2048, name="marginals")
+    print("Marginals")
+    print(AUCs)
+
+    AUCs = evaluate(model.predict_y, data, batch_size=2048, name="full")
     print("Full")
     print(AUCs)
 
-    AUCs = evaluate(model.predict_y_marginals, data, batch_size=2048)
-    print("Marginals")
-    print(AUCs)

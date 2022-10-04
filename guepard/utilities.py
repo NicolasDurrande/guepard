@@ -32,8 +32,9 @@ def get_svgp_submodels(
     num_inducing_list: List[int],
     kernel: Kernel,
     mean_function: Optional[MeanFunction] = None,
-    noise_variance: float = 0.1,
+    noise_variance: Optional[float] = 0.1,
     maxiter: int = 100,
+    likelihood = Optional[gpflow.likelihoods.Likelihood]
 ) -> List[SVGP]:
     """
     Helper function to build a list of GPflow SVGP submodels from a list of datasets, a GP prior and a likelihood variance.
@@ -46,11 +47,15 @@ def get_svgp_submodels(
     if mean_function is None:
         mean_function = gpflow.mean_functions.Zero()
 
-    likelihood = gpflow.likelihoods.Gaussian(variance=noise_variance)
+    if likelihood is None:
+        assert noise_variance is not None
+        likelihood = gpflow.likelihoods.Gaussian(variance=noise_variance)
 
     def _create_submodel(data: RegressionData, num_inducing: int) -> SVGP:
         num_data = len(data[0])
-        centroids, _ = kmeans(data[0], min(num_data, num_inducing))
+        num_inducing = min(num_data, num_inducing)
+        centroids = data[0][:num_inducing]
+        # centroids, _ = kmeans(data[0], min(num_data, num_inducing))
         inducing_variable = gpflow.inducing_variables.InducingPoints(centroids)
         gpflow.set_trainable(inducing_variable, False)
         submodel = SVGP(
