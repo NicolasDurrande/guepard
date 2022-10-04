@@ -74,21 +74,22 @@ def build_model(data) -> guepard.EquivalentObsEnsemble:
     dataset_list = list(map(_create_dataset, data_list))
 
     @tf.function
-    def step() -> tf.Tensor:
+    def step() -> None:
         batch_list = list(map(next, dataset_list))
         loss = lambda: ensemble.training_loss(batch_list)
         opt.minimize(loss, ensemble.trainable_variables)
-        return loss()
 
-    opt = tf.keras.optimizers.Adam()
-    maxiter = 2_000
+    opt = tf.keras.optimizers.Adam(1e-2)
+    maxiter = 300
+    valid_data = list(map(next, dataset_list))
+    print(ensemble.kernel.lengthscales)
     for i in range(maxiter):
-        loss_ = step()
-        if i % 10 == 0:
-            print(i, loss_.numpy())
-            # print(".", end="", flush=True)
-    print()
+        step()
+        if i % 100 == 0:
+            l = ensemble.training_loss(valid_data).numpy()
+            print(f"{str(i).zfill(6)}: {l:.2f}")
 
+    print(ensemble.kernel.lengthscales)
     gpflow.utilities.print_summary(ensemble)
 
     return ensemble
