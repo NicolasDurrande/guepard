@@ -1,8 +1,16 @@
 """
 Train and evaluate SVGP model on SUSY dataset.
 """
+from typing import Optional
+import datetime
+from pathlib import Path
 from collections import namedtuple
+from dataclasses import dataclass, asdict
 from typing import Callable
+from tqdm import tqdm, trange
+import json
+import fire
+
 
 import numpy as np
 from scipy.cluster import vq
@@ -19,57 +27,52 @@ from data import susy
 
 
 Dataset = namedtuple("Dataset", ["X", "Y", "X_test", "Y_test"])
+_FILE_DIR = Path(__file__).parent
 
 
+@dataclass(frozen=True)
 class Config:
     # Number of models in the ensemble
-    num_models_in_ensemble = 10
-    num_inducing = 500
-    num_data = 1_000_000
-    batch_size = 1024
-    num_training_steps = 1000
-    log_freq = 20
+    num_models_in_ensemble: int = 10
+    num_inducing: int = 1024
+    num_data: int = None
+    batch_size: int = 1024
+    num_training_steps: int = 500
+    log_freq: int = 25
 
+_Config = Config()
 
-def get_data():
-    # X, Y, XT, YT = susy(int(20e3))
-    X, Y, XT, YT = susy(Config.num_data)
+def get_data(seed=None):
+    X, Y, XT, YT = susy(_Config.num_data, seed=seed)
     data = Dataset(X=X, Y=Y, X_test=XT, Y_test=YT)
-    print("X", X.shape)
-    print("Xt", Y.shape)
-    print("Y", XT.shape)
-    print("Yt", YT.shape)
     return data
 
 
 def build_model(data) -> guepard.EquivalentObsEnsemble:
     num_data, X_dim = data.X.shape
-    _, label_X = vq.kmeans2(data.X, Config.num_models_in_ensemble, minit="points")
+    _, label_X = vq.kmeans2(data.X, _Config.num_models_in_ensemble, minit="points")
     data_list = [
         (data.X[label_X == p, :], data.Y[label_X == p, :])
-        for p in range(Config.num_models_in_ensemble)
+        for p in range(_Config.num_models_in_ensemble)
     ]
-    print("Max size:")
-    print(max([len(x) for x,y in data_list]))
 
     kernel = gpflow.kernels.Matern32(lengthscales=np.ones((X_dim,)) * 1e-1)
     
     submodels = guepard.utilities.get_svgp_submodels(
         data_list=data_list,
-        num_inducing_list=[Config.num_inducing] * Config.num_models_in_ensemble,
+        num_inducing_list=[_Config.num_inducing] * _Config.num_models_in_ensemble,
         kernel=kernel,
         mean_function=None,
         likelihood=gpflow.likelihoods.Bernoulli(),
         maxiter=0,
     )
     ensemble = guepard.EquivalentObsEnsemble(submodels)
-    gpflow.utilities.print_summary(ensemble)
     
     def _create_dataset(data):
         dataset = tf.data.Dataset.from_tensor_slices(data)
         dataset = dataset.shuffle(buffer_size=10_000)
         dataset = dataset.repeat()
-        dataset = dataset.batch(batch_size=Config.batch_size)
+        dataset = dataset.batch(batch_size=_Config.batch_size)
         dataset = dataset.prefetch(tf.data.AUTOTUNE)
         return iter(dataset)
 
@@ -78,20 +81,22 @@ def build_model(data) -> guepard.EquivalentObsEnsemble:
     @tf.function
     def step() -> None:
         batch_list = list(map(next, dataset_list))
-        loss = lambda: ensemble.training_loss(batch_list)
+        loss = lambda: ensemble.training_loss(batch_list) / (1.0 * num_data)
         opt.minimize(loss, ensemble.trainable_variables)
 
     opt = tf.keras.optimizers.Adam(1e-2)
     valid_data = list(map(next, dataset_list))
-    print(ensemble.kernel.lengthscales)
-    for i in range(Config.num_training_steps):
-        step()
-        if i % Config.log_freq == 0:
-            l = ensemble.training_loss(valid_data).numpy()
-            print(f"{str(i).zfill(6)}: {l:.2f}")
+    tqdm_range = trange(_Config.num_training_steps)
+    for i in tqdm_range:
+        try:
+            step()
+        except KeyboardInterrupt as e:
+            print("User stopped training...")
+            break
 
-    print(ensemble.kernel.lengthscales)
-    gpflow.utilities.print_summary(ensemble)
+        if i % _Config.log_freq == 0:
+            l = ensemble.training_loss(valid_data).numpy()
+            tqdm_range.set_description(f"{str(i).zfill(6)}: {l:.2f}")
 
     return ensemble
 
@@ -100,8 +105,7 @@ def evaluate(predict_y_func: Callable, data: Dataset, batch_size: int = 2048, na
     def predict_in_batches(X_eval):
         num_data_test = len(X_eval)
         y_predict = []
-        for k in range(0, num_data_test, batch_size):
-            print(f"{k} / {num_data_test}")
+        for k in tqdm(range(0, num_data_test, batch_size), total=num_data_test//batch_size):
             X_test_batch = X_eval[k : k + batch_size]
             y_pred, _ = predict_y_func(X_test_batch)
             y_predict.append(y_pred)
@@ -109,60 +113,34 @@ def evaluate(predict_y_func: Callable, data: Dataset, batch_size: int = 2048, na
         assert len(y_predict) == num_data_test
         return y_predict
 
-    fig, ax1 = plt.subplots(1, 1)
     y_test_true = data.Y_test.ravel()
     y_test_predict = predict_in_batches(data.X_test)
-    auc_test = plot_roc(
-        y_test_predict, y_test_true, name="Ensemble", title="test data", ax=ax1
-    )
-    plt.savefig(f"{name}.png")
-    return {f"{name}_auc_test": auc_test}
-
-
-def plot_roc(
-    y_prob, y_true, ax=None, name=None, title=None, color="darkorange"
-) -> float:
-    fpr, tpr, _ = roc_curve(y_true.ravel(), y_prob.ravel())
+    fpr, tpr, _ = roc_curve(y_test_true.ravel(), y_test_predict.ravel())
     roc_auc = auc(fpr, tpr)
-
-    if ax is None:
-        import matplotlib.pyplot as plt
-
-        _, ax = plt.subplots()
-
-    lw = 2
-    ax.plot(
-        fpr,
-        tpr,
-        color=color,
-        lw=lw,
-        label="{name} (area = {auc:.3f})".format(name=name, auc=roc_auc),
-    )
-    ax.plot([0, 1], [0, 1], color="black", lw=lw, linestyle="--", alpha=0.1)
-    ax.set_xlim([0.0, 1.0])
-    ax.set_ylim([0.0, 1.0])
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-    ax.set_xlabel("False Positive Rate")
-    ax.set_ylabel("True Positive Rate")
-    if title is not None:
-        ax.set_title(title)
-    ax.legend(loc="lower right")
-    return roc_auc
+    return {f"{name}_auc_test": roc_auc}
 
 
-if __name__ == "__main__":
+def main(seed: Optional[int] = 0):
+    date = datetime.datetime.now().strftime("%b%d_%H%M%S")
+    ext = "json"
+    outfile = _FILE_DIR / "results" / ".".join([date, ext])
+    i = 1
+    while outfile.exists():
+        outfile = _FILE_DIR / "results" / ".".join([date + f"_{i}", ext])
+
     print("Getting Data")
-    data = get_data()
+    data = get_data(seed)
     print("Building")
     model = build_model(data)
     print("Testing")
 
     AUCs = evaluate(model.predict_y_marginals, data, batch_size=2048, name="marginals")
-    print("Marginals")
     print(AUCs)
 
-    AUCs = evaluate(model.predict_y, data, batch_size=2048, name="full")
-    print("Full")
-    print(AUCs)
+    results = {**asdict(_Config), **AUCs, **{'seed': seed}}
+    with open(outfile, "w") as outfile:
+        json.dump(results, outfile, indent=4)
 
+
+if __name__ == "__main__":
+    fire.Fire(main)

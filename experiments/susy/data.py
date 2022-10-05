@@ -1,8 +1,10 @@
+from typing import Optional
+
 import pandas as pd
 import numpy as np
 
 
-def susy(N=None, test_percentage=0.1, feature_set="low_level"):
+def susy(N=None, test_percentage=0.1, feature_set="low_level", seed: Optional[int]=0):
     """
     :param N: int
         Total number of datapoints in train and test sets
@@ -48,7 +50,6 @@ def susy(N=None, test_percentage=0.1, feature_set="low_level"):
     data = pd.read_csv("SUSY.csv", header=None, names=names)
 
     # Pick out the data
-    Y = data['y'].values
     if feature_set == "low_level":
         columns_of_interest = low_level_features
     elif feature_set == "high_level":
@@ -62,7 +63,18 @@ def susy(N=None, test_percentage=0.1, feature_set="low_level"):
         raise NotImplementedError(
             "Unknown `feature_set` {}".format(feature_set))
 
+    Y = data['y'].values
     X = data[columns_of_interest].values
+    shuffled_indices = np.arange(len(X))
+
+    if seed is not None:
+        np.random.seed(seed)
+        np.random.shuffle(shuffled_indices)
+    else:
+        print("Seed is None")
+
+    X = X[shuffled_indices]
+    Y = Y[shuffled_indices]
     
     n = len(X) if N is None else N
     n_train = n - int(test_percentage * n)
