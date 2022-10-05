@@ -32,7 +32,6 @@ _FILE_DIR = Path(__file__).parent
 
 @dataclass(frozen=True)
 class Config:
-    # Number of models in the ensemble
     num_models_in_ensemble: int = 10
     num_inducing: int = 1024
     num_data: int = None
@@ -123,21 +122,23 @@ def evaluate(predict_y_func: Callable, data: Dataset, batch_size: int = 2048, na
 def main(seed: Optional[int] = 0):
     date = datetime.datetime.now().strftime("%b%d_%H%M%S")
     ext = "json"
-    outfile = _FILE_DIR / "results" / ".".join([date, ext])
-    i = 1
-    while outfile.exists():
-        outfile = _FILE_DIR / "results" / ".".join([date + f"_{i}", ext])
+    config = {**asdict(_Config), **{'seed': seed}}
+    # Hashing config to get unique filename...
+    filename = date + '_' + str(abs(hash(frozenset(config.items()))))[:7] + "." + ext
+    outfile = _FILE_DIR / "results" / filename
+    if outfile.exists():
+        print("Experiment already exists. Quitting experiment.")
+        return -1
 
     print("Getting Data")
     data = get_data(seed)
     print("Building")
     model = build_model(data)
     print("Testing")
-
-    AUCs = evaluate(model.predict_y_marginals, data, batch_size=2048, name="marginals")
-    print(AUCs)
-
-    results = {**asdict(_Config), **AUCs, **{'seed': seed}}
+    metrics = evaluate(model.predict_y_marginals, data, batch_size=2048, name="marginals")
+    print(metrics)
+    print("Saving results")
+    results = {**config, **metrics}
     with open(outfile, "w") as outfile:
         json.dump(results, outfile, indent=4)
 
