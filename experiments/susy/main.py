@@ -26,7 +26,9 @@ class Config:
     num_models_in_ensemble = 10
     num_inducing = 500
     num_data = 1_000_000
-    batch_size = 64
+    batch_size = 1024
+    num_training_steps = 1000
+    log_freq = 20
 
 
 def get_data():
@@ -50,7 +52,7 @@ def build_model(data) -> guepard.EquivalentObsEnsemble:
     print("Max size:")
     print(max([len(x) for x,y in data_list]))
 
-    kernel = gpflow.kernels.Matern32(lengthscales=np.ones((X_dim,)) * 1e-3)
+    kernel = gpflow.kernels.Matern32(lengthscales=np.ones((X_dim,)) * 1e-1)
     
     submodels = guepard.utilities.get_svgp_submodels(
         data_list=data_list,
@@ -80,12 +82,11 @@ def build_model(data) -> guepard.EquivalentObsEnsemble:
         opt.minimize(loss, ensemble.trainable_variables)
 
     opt = tf.keras.optimizers.Adam(1e-2)
-    maxiter = 300
     valid_data = list(map(next, dataset_list))
     print(ensemble.kernel.lengthscales)
-    for i in range(maxiter):
+    for i in range(Config.num_training_steps):
         step()
-        if i % 100 == 0:
+        if i % Config.log_freq == 0:
             l = ensemble.training_loss(valid_data).numpy()
             print(f"{str(i).zfill(6)}: {l:.2f}")
 
