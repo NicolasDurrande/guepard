@@ -34,10 +34,10 @@ _FILE_DIR = Path(__file__).parent
 class Config:
     num_models_in_ensemble: int = 10
     num_inducing: int = 1024
-    num_data: int = None
+    num_data: int = 1_000_000
     batch_size: int = 1024
-    num_training_steps: int = 500
-    log_freq: int = 25
+    num_training_steps: int = 5000
+    log_freq: int = 20
 
 _Config = Config()
 
@@ -80,7 +80,7 @@ def build_model(data) -> guepard.EquivalentObsEnsemble:
     @tf.function
     def step() -> None:
         batch_list = list(map(next, dataset_list))
-        loss = lambda: ensemble.training_loss(batch_list) / (1.0 * num_data)
+        loss = lambda: ensemble.training_loss(batch_list)
         opt.minimize(loss, ensemble.trainable_variables)
 
     opt = tf.keras.optimizers.Adam(1e-2)
