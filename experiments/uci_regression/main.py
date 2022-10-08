@@ -17,11 +17,11 @@ from scipy.stats import norm
 from utils import ExperimentName
 
 from sklearn_models import SVM, LinearRegressionModel
-from model import GuepardRegression
+from models import GuepardRegression
 
 
 _THIS_DIR = Path(__file__).parent
-_LOGS = _THIS_DIR / "results"
+_LOGS = _THIS_DIR / "tmp"
 _EXPERIMENT = Experiment("UCI")
 
 
