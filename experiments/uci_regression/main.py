@@ -1,4 +1,3 @@
-from re import L
 from typing import Callable, Tuple
 
 import datetime
@@ -8,8 +7,6 @@ from pathlib import Path
 from typing import Any, Optional, Type
 
 import numpy as np
-from sklearn import metrics
-import tensorflow as tf
 from bayesian_benchmarks.data import _ALL_REGRESSION_DATATSETS
 from bayesian_benchmarks.data import Dataset
 from sacred import Experiment

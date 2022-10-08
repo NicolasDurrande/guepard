@@ -27,7 +27,7 @@ __all__ = [
 ]
 
 
-def _get_experts_and_datasets(X_train, Y_train) -> Tuple[List[gpflow.models.GPR], List[gpflow.base.RegressionData]]:
+def _get_experts_and_datasets(X_train, Y_train, ard=True) -> Tuple[List[gpflow.models.GPR], List[gpflow.base.RegressionData]]:
     """Uses kmeans to create subsets of data and builds the GPR models."""
     num_data, X_dim = X_train.shape
     if num_data > Config.threshold_small_to_large:
@@ -45,7 +45,9 @@ def _get_experts_and_datasets(X_train, Y_train) -> Tuple[List[gpflow.models.GPR]
     print("Max point per expert", max([len(t[0]) for t in data_list]))
 
     if Config.kernel == "RBF":
-        kernel = gpflow.kernels.SquaredExponential(lengthscales=np.ones((X_dim,)) * 1e-1)
+        ells = np.ones((X_dim,)) if ard else 1.
+        # kernel = gpflow.kernels.SquaredExponential(lengthscales=np.ones((X_dim,)) * 1e-1)
+        kernel = gpflow.kernels.SquaredExponential(lengthscales=ells)
     else:
         raise NotImplementedError(f"Unknown kernel {Config.kernel}")
 
@@ -79,7 +81,7 @@ class _BaselineEnsemble:
         self._weighting = weighting
 
     def fit(self, X_train, Y_train):
-        experts, data_list = _get_experts_and_datasets(X_train, Y_train)
+        experts, data_list = _get_experts_and_datasets(X_train, Y_train, ard=False)
 
         ensemble = Ensemble(experts, self._method, self._weighting)
 
