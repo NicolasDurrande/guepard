@@ -190,3 +190,7 @@ class EquivalentObsEnsemble(GPModel):
         )
 
         return mean, var
+
+    def predict_y_marginals(self, Xnew: InputData) -> MeanAndVariance:
+        m, v = self.predict_f_marginals(Xnew)
+        return self.likelihood.predict_mean_and_var(Xnew, m, v)
