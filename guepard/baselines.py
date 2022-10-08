@@ -241,3 +241,7 @@ class Ensemble(GPModel):
             mu = var * tf.reduce_sum(weight_matrix * prec_s * Me, axis=-1)
 
         return mu, var
+
+    def predict_y(self, Xnew):
+        m, v = self.predict_f(Xnew)
+        return self.likelihood.predict_mean_and_var(Xnew, m, v)

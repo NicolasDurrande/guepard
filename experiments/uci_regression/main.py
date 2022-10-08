@@ -17,7 +17,7 @@ from scipy.stats import norm
 from utils import ExperimentName
 
 from sklearn_models import SVM, LinearRegressionModel
-from models import GuepardRegression
+from models import GuepardRegression, gPoE_unif, gPoE_var, rBCM_entr, BAR_var
 
 
 _THIS_DIR = Path(__file__).parent
@@ -66,6 +66,14 @@ def get_model(model):
         return SVM()
     elif model == "guepard":
         return GuepardRegression()
+    elif model == "gPoE_unif":
+        return gPoE_unif()
+    elif model == "gPoE_var":
+        return gPoE_var()
+    elif model == "rBCM_entr":
+        return rBCM_entr()
+    elif model == "BAR_var":
+        return BAR_var()
     else:
         raise NotImplementedError(f"Unknown model type {model}")
 

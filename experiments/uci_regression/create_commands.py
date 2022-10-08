@@ -80,6 +80,13 @@ MODELS = [
     "linear",
 ]
 
+MODELS_BASELINE = [
+    "gPoE_unif",
+    "gPoE_var",
+    "rBCM_entr",
+    "BAR_var",
+]
+
 
 if __name__ == "__main__":
     NAME = "commands_uci.txt"
@@ -90,9 +97,9 @@ if __name__ == "__main__":
 
     commands = (
         CommandsBuilder()
-        .add("model", MODELS)
-        .add("dataset", UCI_LARGE)
-        .add("split", range(10))
+        .add("model", MODELS_BASELINE)
+        .add("dataset", UCI_SMALL)
+        .add("split", range(5))
         .build()
     )
 
