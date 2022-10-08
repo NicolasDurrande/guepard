@@ -12,6 +12,7 @@ import guepard
 class Config:
     num_points_per_expert = 100
     kernel = "RBF"
+    maxiter = 100
 
 
 class GuepardRegression:
@@ -39,7 +40,7 @@ class GuepardRegression:
         gpflow.optimizers.scipy.Scipy().minimize(
             tf.function(lambda: ensemble.training_loss(data_list)),
             ensemble.trainable_variables,
-            options={"disp": True, "maxiter": 10},
+            options={"disp": False, "maxiter": Config.maxiter},
         )
         self.ensemble = ensemble
 

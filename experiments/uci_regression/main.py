@@ -21,7 +21,7 @@ from model import GuepardRegression
 
 
 _THIS_DIR = Path(__file__).parent
-_LOGS = _THIS_DIR / "tmp"
+_LOGS = _THIS_DIR / "results"
 _EXPERIMENT = Experiment("UCI")
 
 
@@ -34,7 +34,7 @@ def config():
     # Dataset split (None)
     split = 0
     # Model name (None)
-    model_name = "SVM"
+    model = "SVM"
     # Task (T)
     task = "reg"
 
@@ -59,15 +59,15 @@ def get_data(split, dataset):
 
 
 @_EXPERIMENT.capture
-def get_model(model_name):
-    if model_name == "linear":
+def get_model(model):
+    if model == "linear":
         return LinearRegressionModel()
-    elif model_name == "SVM":
+    elif model == "SVM":
         return SVM()
-    elif model_name == "guepard":
+    elif model == "guepard":
         return GuepardRegression()
     else:
-        raise NotImplementedError(f"Unknown model type {model_name}")
+        raise NotImplementedError(f"Unknown model type {model}")
 
 
 PREDICT_Y_FN = Callable[[np.ndarray], Tuple[np.ndarray, np.ndarray]]
@@ -84,8 +84,6 @@ def evaluate_model(predict_y: PREDICT_Y_FN, data_test):
     return dict(rmse=rmse, mse=mse, nlpd=nlpd)
 
 
-
-
 @_EXPERIMENT.automain
 def main(_config):
     data = get_data()
@@ -93,11 +91,15 @@ def main(_config):
     # Build
     model = get_model() 
 
-    # Train
-    model.fit(data.X_train, data.Y_train)
-
-    # Evaluate
-    metrics = evaluate_model(model.predict, (data.X_test, data.Y_test))
+    failed = False
+    try:
+        # Train
+        model.fit(data.X_train, data.Y_train)
+        # Evaluate
+        metrics = evaluate_model(model.predict, (data.X_test, data.Y_test))
+    except Exception:
+        failed = True
+        metrics = dict(rmse=np.nan, mse=np.nan, nlpd=np.nan)
 
     # Save
     data_stats = {
@@ -105,7 +107,7 @@ def main(_config):
         "input_dim": get_dataset_class().D,
     }
 
-    results = {**_config, **data_stats, **metrics}
+    results = {**_config, **data_stats, **metrics, 'failed': failed}
     with open(f"{_LOGS}/{experiment_name()}.json", "w") as fp:
         json.dump(results, fp, indent=2)
 
