@@ -1,4 +1,4 @@
-from typing import Tuple, List
+from typing import Tuple, List, final
 from scipy.cluster import vq
 
 import numpy as np
@@ -13,7 +13,7 @@ from guepard.baselines import EnsembleMethods, WeightingMethods, Ensemble
 class Config:
     num_points_per_expert_small = 100
     num_points_per_expert_large = 1000
-    threshold_small_to_large = 10_000
+    threshold_small_to_large = 5_000
     kernel = "RBF"
     maxiter = 100
 
@@ -43,11 +43,13 @@ def _get_experts_and_datasets(X_train, Y_train, ard=True) -> Tuple[List[gpflow.m
     ]
     print("Num experts", num_experts)
     print("Max point per expert", max([len(t[0]) for t in data_list]))
+    print("Min point per expert", min([len(t[0]) for t in data_list]))
 
     if Config.kernel == "RBF":
-        ells = np.ones((X_dim,)) if ard else 1.
+        ells = np.ones((X_dim,)) if ard else 0.1
         # kernel = gpflow.kernels.SquaredExponential(lengthscales=np.ones((X_dim,)) * 1e-1)
         kernel = gpflow.kernels.SquaredExponential(lengthscales=ells)
+        gpflow.set_trainable(kernel.variance, False)
     else:
         raise NotImplementedError(f"Unknown kernel {Config.kernel}")
 
@@ -60,13 +62,23 @@ def _get_experts_and_datasets(X_train, Y_train, ard=True) -> Tuple[List[gpflow.m
 class GuepardRegression:
 
     def fit(self, X_train, Y_train):
-        submodels, data_list = _get_experts_and_datasets(X_train, Y_train)
+        d = X_train.shape[-1]
+        ard = d < 10
+        submodels, data_list = _get_experts_and_datasets(X_train, Y_train, ard=ard)
         ensemble = guepard.EquivalentObsEnsemble(submodels)
-        gpflow.optimizers.scipy.Scipy().minimize(
-            tf.function(lambda: ensemble.training_loss(data_list)),
-            ensemble.trainable_variables,
-            options={"disp": True, "maxiter": Config.maxiter},
-        )
+        try:
+            gpflow.optimizers.scipy.Scipy().minimize(
+                tf.function(lambda: ensemble.training_loss(data_list)),
+                ensemble.trainable_variables,
+                options={"disp": False, "maxiter": Config.maxiter},
+            )
+        except Exception as e:
+            print(('!' * 10) + "Exception during optimization")
+            raise e
+        finally:
+            print("variance", ensemble.kernel.variance)
+            print("lengthscales", ensemble.kernel.lengthscales)
+            print("likelihood.variance", ensemble.likelihood.variance)
         self.ensemble = ensemble
 
     def predict(self, X_test: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:

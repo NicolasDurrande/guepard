@@ -1,3 +1,4 @@
+from typing import Set 
 import glob
 import json
 import time
@@ -81,19 +82,36 @@ df = (
 
 st.dataframe(df)
 
-# df = pd.pivot_table(df, index=['dataset'], columns=['model'], fill_value=np.nan)
-# df['N'] = df[('num_data', 'max', selected_models[0])].values
-# df['D'] = df[('input_dim', 'max', selected_models[0])].values
-# def f(r):
-    
-# df['nlpd'] = df.apply
-# for metric in selected_metrics:
 def _format(mean, std) -> str:
     if std is None:
         return f"{mean:.2f} (n/a)"
     else:
         return f"{mean:.2f} ({std:.2f})"
 
+
+df = df_all
+table = []
+for dataset in selected_datasets:
+    N = df[df.dataset == dataset]['num_data'].values[0]
+    D = df[df.dataset == dataset]['input_dim'].values[0]
+    row = {'dataset': dataset, 'N': N, 'D': D}
+    for metric in selected_metrics:
+        for model in selected_models:
+            vals = df[(df.dataset == dataset) & (df.model == model)][metric]
+            m = np.mean(vals)
+            s = np.std(vals) if len(vals) > 1 else None
+            row[(model, metric)] = _format(m, s)
+        
+    table.append(row)
+
+df_table = pd.DataFrame(table).set_index('dataset')
+st.dataframe(df_table)
+
+# Latex Table
+# =============================================
+
+# Only works for a single metric at the time.
+selected_metrics = selected_metrics[:1]
 
 def format_number(value, error, *, bold=False, possibly_negative=True):
     if np.isnan(value) or value is None:
@@ -122,37 +140,55 @@ def _format_dataset(name: str) -> str:
 def _format_model(name: str) -> str:
     return name.replace('_', '-')
 
-df = df_all
-table = []
-for dataset in selected_datasets:
-    N = df[df.dataset == dataset]['num_data'].values[0]
-    D = df[df.dataset == dataset]['input_dim'].values[0]
-    row = {'dataset': dataset, 'N': N, 'D': D}
-    for metric in selected_metrics:
-        for model in selected_models:
-            vals = df[(df.dataset == dataset) & (df.model == model)][metric]
-            m = np.mean(vals)
-            s = np.std(vals) if len(vals) > 1 else None
-            row[(model, metric)] = _format(m, s)
-        
-    table.append(row)
 
-df_table = pd.DataFrame(table).set_index('dataset')
-st.dataframe(df_table)
-
-# Latex Table
-
+# Determine rank
 ranks = (
-    df[['dataset', 'model', 'nlpd', 'split']]
+    df[['dataset', 'model', selected_metrics[0], 'split']]
         .groupby(['dataset', 'model'])
-        .agg({'nlpd': 'mean'})
+        .agg({selected_metrics[0]: 'mean'})
         .pivot_table(index="dataset", columns="model")
         .rank(axis=1)
         .mean(axis=0)
-)['nlpd']
+)[selected_metrics[0]]
 selected_models.sort(key=lambda m: ranks.at[m])
 
-assert len(selected_metrics) == 1
+
+def n_best(df, col, col_err, *, smaller_is_better) -> Set[str]:
+    ascending = smaller_is_better
+    df = df.sort_values(col, ascending=ascending)
+    best_indices = set()
+    val0, err0 = df[[col, col_err]].iloc[0]
+    i = 0
+    while True:
+        best_indices.add(df.index[i])
+
+        # Compare with the next.
+        val, err = df[[col, col_err]].iloc[i + 1]
+        diff = abs(val0 - val)
+        diff_err = np.sqrt(err0**2 + err**2)
+
+        if diff > diff_err:
+            # Significantly better.
+            return best_indices
+        else:
+            # Not significantly better. Try the next.
+            i += 1
+
+df2 = (
+    df[['dataset', 'model', selected_metrics[0], 'split']]
+        .groupby(['dataset', 'model'])
+        .agg({selected_metrics[0]: ['mean', 'std']})
+        .pivot_table(index="model", columns="dataset")
+)
+
+best_for_dataset = {}
+for dataset in selected_datasets:
+    df_tmp = df2.xs(dataset, level='dataset', axis=1)[selected_metrics[0]]
+    best_for_dataset[dataset] = n_best(df_tmp, 'mean', 'std', smaller_is_better=True)
+
+st.write(best_for_dataset)
+
+
 table = f"""
 \\begin{{tabular}}{{{'lll' + 'c' * (len(selected_models))}}}
 \\toprule
@@ -170,7 +206,7 @@ for dataset in selected_datasets:
             vals = df[(df.dataset == dataset) & (df.model == model)][metric]
             m = np.mean(vals)
             s = np.std(vals) if len(vals) > 1 else None
-            row  += ' & ' + format_number(m, s, possibly_negative=neg_value_in_col)
+            row  += ' & ' + format_number(m, s, possibly_negative=neg_value_in_col, bold=model in best_for_dataset[dataset])
 
     table += (row + " \\\\ \n")
 

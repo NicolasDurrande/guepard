@@ -102,9 +102,10 @@ def main(_config):
         model.fit(data.X_train, data.Y_train)
         # Evaluate
         metrics = evaluate_model(model.predict, (data.X_test, data.Y_test))
-    except Exception:
+    except Exception as e:
         failed = True
         metrics = dict(rmse=np.nan, mse=np.nan, nlpd=np.nan)
+        print(e)
 
     # Save
     data_stats = {
