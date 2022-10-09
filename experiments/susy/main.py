@@ -33,10 +33,12 @@ _FILE_DIR = Path(__file__).parent
 @dataclass(frozen=True)
 class Config:
     num_models_in_ensemble: int = 500
-    num_inducing: int = 512
-    num_data: int = 1_000_000
+    num_inducing: int = None
+    num_data: int = None
     batch_size: int = 1024
     num_training_steps: int = 200
+    only_pretrain: bool = True
+    num_pretraining_steps: int = 100
     log_freq: int = 20
 
 _Config = Config()
@@ -85,9 +87,11 @@ def build_model(data) -> guepard.EquivalentObsEnsemble:
         kernel=kernel,
         mean_function=None,
         likelihood=gpflow.likelihoods.Bernoulli(),
-        maxiter=10,
+        maxiter=_Config.num_pretraining_steps,
     )
     ensemble = guepard.EquivalentObsEnsemble(submodels)
+    if _Config.only_pretrain:
+        return ensemble
     
     def _create_dataset(data):
         dataset = tf.data.Dataset.from_tensor_slices(data)
@@ -102,7 +106,7 @@ def build_model(data) -> guepard.EquivalentObsEnsemble:
     @tf.function
     def step() -> None:
         batch_list = list(map(next, dataset_list))
-        loss = lambda: ensemble.training_loss(batch_list)
+        loss = lambda: ensemble.training_loss()
         opt.minimize(loss, ensemble.trainable_variables)
 
     opt = tf.keras.optimizers.Adam(1e-2)
@@ -158,12 +162,14 @@ def main(seed: Optional[int] = 0):
     model = build_model(data)
     print("Testing")
     metrics = evaluate(model.predict_y_marginals, data, batch_size=2048, name="marginals")
+    print(metrics)
+
     try:
         metrics_2 = evaluate(model.predict_y, data, batch_size=32, name="full")
     except Exception:
         metrics_2 = {'full_auc_test': np.nan}
 
-    print(metrics)
+    print(metrics_2)
     print("Saving results")
     results = {**config, **metrics, **metrics_2}
     with open(outfile, "w") as outfile:

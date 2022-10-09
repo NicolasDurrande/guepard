@@ -61,7 +61,7 @@ class EquivalentObsEnsemble(GPModel):
             m.training_loss(d) if ext else m.training_loss()
             for m, ext, d in zip_longest(self.models, external, data)
         ]
-        return tf.reduce_sum(objectives)
+        return tf.reduce_mean(objectives)
 
     def training_loss(
         self, data: List[Union[None, RegressionData]] = [None]
