@@ -32,11 +32,11 @@ _FILE_DIR = Path(__file__).parent
 
 @dataclass(frozen=True)
 class Config:
-    num_models_in_ensemble: int = 10
-    num_inducing: int = 1024
-    num_data: int = 1_000_000
-    batch_size: int = 1024
-    num_training_steps: int = 5000
+    num_models_in_ensemble: int = 100
+    num_inducing: int = 512
+    num_data: int = None
+    batch_size: int = 512
+    num_training_steps: int = 1000
     log_freq: int = 20
 
 _Config = Config()
@@ -47,6 +47,21 @@ def get_data(seed=None):
     return data
 
 
+def estimate_kernel(X_train, Y_train):
+    data = (X_train, Y_train)
+    X_dim = data[0].shape[-1]
+    kernel = gpflow.kernels.Matern32(lengthscales=np.ones((X_dim,)) * 5e-1)
+    likelihood=gpflow.likelihoods.Bernoulli()
+    model = gpflow.models.VGP(data, kernel, likelihood)
+    gpflow.optimizers.scipy.Scipy().minimize(
+        model.training_loss_closure(),
+        model.trainable_variables,
+        options={"disp": True, "maxiter": 100},
+    )
+    return model
+
+
+
 def build_model(data) -> guepard.EquivalentObsEnsemble:
     num_data, X_dim = data.X.shape
     _, label_X = vq.kmeans2(data.X, _Config.num_models_in_ensemble, minit="points")
@@ -54,8 +69,15 @@ def build_model(data) -> guepard.EquivalentObsEnsemble:
         (data.X[label_X == p, :], data.Y[label_X == p, :])
         for p in range(_Config.num_models_in_ensemble)
     ]
+    print("Num experts", _Config.num_models_in_ensemble)
+    print("Max point per expert", max([len(t[0]) for t in data_list]))
+    print("Min point per expert", min([len(t[0]) for t in data_list]))
 
-    kernel = gpflow.kernels.Matern32(lengthscales=np.ones((X_dim,)) * 1e-1)
+    ells = np.array([0.31174366, 2.30417976, 5.94359217, 0.52124237, 3.01414852, 7.26889154, 0.26389877, 6.9380755 ])
+    kernel = gpflow.kernels.Matern32(lengthscales=ells)
+    kernel.variance.assign(3.05)
+    gpflow.set_trainable(kernel, False)
+    gpflow.utilities.print_summary(kernel)
     
     submodels = guepard.utilities.get_svgp_submodels(
         data_list=data_list,
@@ -125,7 +147,7 @@ def main(seed: Optional[int] = 0):
     config = {**asdict(_Config), **{'seed': seed}}
     # Hashing config to get unique filename...
     filename = date + '_' + str(abs(hash(frozenset(config.items()))))[:7] + "." + ext
-    outfile = _FILE_DIR / "results" / filename
+    outfile = _FILE_DIR / "tmp" / filename
     if outfile.exists():
         print("Experiment already exists. Quitting experiment.")
         return -1
