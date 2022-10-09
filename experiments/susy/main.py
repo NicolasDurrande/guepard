@@ -32,11 +32,11 @@ _FILE_DIR = Path(__file__).parent
 
 @dataclass(frozen=True)
 class Config:
-    num_models_in_ensemble: int = 100
+    num_models_in_ensemble: int = 500
     num_inducing: int = 512
-    num_data: int = None
-    batch_size: int = 512
-    num_training_steps: int = 1000
+    num_data: int = 1_000_000
+    batch_size: int = 1024
+    num_training_steps: int = 200
     log_freq: int = 20
 
 _Config = Config()
@@ -85,7 +85,7 @@ def build_model(data) -> guepard.EquivalentObsEnsemble:
         kernel=kernel,
         mean_function=None,
         likelihood=gpflow.likelihoods.Bernoulli(),
-        maxiter=0,
+        maxiter=10,
     )
     ensemble = guepard.EquivalentObsEnsemble(submodels)
     
@@ -158,9 +158,14 @@ def main(seed: Optional[int] = 0):
     model = build_model(data)
     print("Testing")
     metrics = evaluate(model.predict_y_marginals, data, batch_size=2048, name="marginals")
+    try:
+        metrics_2 = evaluate(model.predict_y, data, batch_size=32, name="full")
+    except Exception:
+        metrics_2 = {'full_auc_test': np.nan}
+
     print(metrics)
     print("Saving results")
-    results = {**config, **metrics}
+    results = {**config, **metrics, **metrics_2}
     with open(outfile, "w") as outfile:
         json.dump(results, outfile, indent=4)
 

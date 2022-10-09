@@ -63,17 +63,19 @@ def get_svgp_submodels(
             likelihood=likelihood,
             inducing_variable=inducing_variable,
             mean_function=mean_function,
-            whiten=False,
+            whiten=True,
         )
         if maxiter > 0:
             print(
                 "Note that the Guepard model requires equal priors."
                 "Training the models seperately will lead to different hyperparameters."
             )
+            X_ = data[0][:1000]
+            Y_ = data[1][:1000]
             gpflow.optimizers.scipy.Scipy().minimize(
-                submodel.training_loss_closure(data),
+                submodel.training_loss_closure((X_, Y_)),
                 submodel.trainable_variables,
-                options={"disp": False, "maxiter": maxiter},
+                options={"disp": True, "maxiter": maxiter},
             )
         return submodel
 
