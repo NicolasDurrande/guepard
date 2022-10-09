@@ -34,9 +34,9 @@ _FILE_DIR = Path(__file__).parent
 class Config:
     num_models_in_ensemble: int = 500
     only_pretrain: bool = False
-    lr = 5e-3
+    lr: float = 5e-3
     num_inducing: int = 2000
-    num_data: int = 1000
+    num_data: int = None
     batch_size: int = 1024
     num_training_steps: int = 200
     num_pretraining_steps: int = 100
