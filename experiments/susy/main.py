@@ -32,7 +32,7 @@ _FILE_DIR = Path(__file__).parent
 
 @dataclass(frozen=True)
 class Config:
-    num_models_in_ensemble: int = 500
+    num_models_in_ensemble: int = 50
     num_inducing: int = None
     num_data: int = None
     batch_size: int = 1024
@@ -92,7 +92,9 @@ def build_model(data) -> guepard.EquivalentObsEnsemble:
     ensemble = guepard.EquivalentObsEnsemble(submodels)
     if _Config.only_pretrain:
         return ensemble
-    
+
+    gpflow.set_trainable(ensemble, True)
+
     def _create_dataset(data):
         dataset = tf.data.Dataset.from_tensor_slices(data)
         dataset = dataset.shuffle(buffer_size=10_000)

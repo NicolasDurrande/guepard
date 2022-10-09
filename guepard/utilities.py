@@ -56,11 +56,11 @@ def get_svgp_submodels(
     elbos_post = []
     def _create_submodel(data: RegressionData, num_inducing: int) -> SVGP:
         num_data = len(data[0])
-        num_inducing = min(num_data, num_inducing)
-        centroids = data[0][:num_inducing]
+        # num_inducing = min(num_data, num_inducing)
+        # centroids = data[0][:num_inducing]
         # centroids, _ = kmeans(data[0], min(num_data, num_inducing))
-        inducing_variable = gpflow.inducing_variables.InducingPoints(centroids)
-        gpflow.set_trainable(inducing_variable, False)
+        # inducing_variable = gpflow.inducing_variables.InducingPoints(centroids)
+        # gpflow.set_trainable(inducing_variable, False)
         X_ = data[0][:2000]
         Y_ = data[1][:2000]
         submodel = gpflow.models.VGP(
