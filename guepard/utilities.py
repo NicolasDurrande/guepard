@@ -61,8 +61,8 @@ def get_svgp_submodels(
         # centroids, _ = kmeans(data[0], min(num_data, num_inducing))
         # inducing_variable = gpflow.inducing_variables.InducingPoints(centroids)
         # gpflow.set_trainable(inducing_variable, False)
-        X_ = data[0][:2000]
-        Y_ = data[1][:2000]
+        X_ = data[0][:num_inducing]
+        Y_ = data[1][:num_inducing]
         submodel = gpflow.models.VGP(
             (X_, Y_),
             kernel=kernel,
@@ -77,7 +77,7 @@ def get_svgp_submodels(
             gpflow.optimizers.scipy.Scipy().minimize(
                 obj,
                 submodel.trainable_variables,
-                options={"disp": True, "maxiter": maxiter},
+                options={"disp": False, "maxiter": maxiter},
             )
             elbos_post.append(obj())
         return submodel

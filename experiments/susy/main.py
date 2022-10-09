@@ -32,12 +32,13 @@ _FILE_DIR = Path(__file__).parent
 
 @dataclass(frozen=True)
 class Config:
-    num_models_in_ensemble: int = 50
-    num_inducing: int = None
-    num_data: int = None
+    num_models_in_ensemble: int = 500
+    only_pretrain: bool = False
+    lr = 5e-3
+    num_inducing: int = 2000
+    num_data: int = 1000
     batch_size: int = 1024
     num_training_steps: int = 200
-    only_pretrain: bool = True
     num_pretraining_steps: int = 100
     log_freq: int = 20
 
@@ -93,7 +94,7 @@ def build_model(data) -> guepard.EquivalentObsEnsemble:
     if _Config.only_pretrain:
         return ensemble
 
-    gpflow.set_trainable(ensemble, True)
+    gpflow.set_trainable(kernel, True)
 
     def _create_dataset(data):
         dataset = tf.data.Dataset.from_tensor_slices(data)
@@ -111,7 +112,7 @@ def build_model(data) -> guepard.EquivalentObsEnsemble:
         loss = lambda: ensemble.training_loss()
         opt.minimize(loss, ensemble.trainable_variables)
 
-    opt = tf.keras.optimizers.Adam(1e-2)
+    opt = tf.keras.optimizers.Adam(_Config.lr)
     valid_data = list(map(next, dataset_list))
     tqdm_range = trange(_Config.num_training_steps)
     for i in tqdm_range:
@@ -125,6 +126,7 @@ def build_model(data) -> guepard.EquivalentObsEnsemble:
             l = ensemble.training_loss(valid_data).numpy()
             tqdm_range.set_description(f"{str(i).zfill(6)}: {l:.2f}")
 
+    gpflow.utilities.print_summary(kernel)
     return ensemble
 
 
@@ -166,14 +168,8 @@ def main(seed: Optional[int] = 0):
     metrics = evaluate(model.predict_y_marginals, data, batch_size=2048, name="marginals")
     print(metrics)
 
-    try:
-        metrics_2 = evaluate(model.predict_y, data, batch_size=32, name="full")
-    except Exception:
-        metrics_2 = {'full_auc_test': np.nan}
-
-    print(metrics_2)
     print("Saving results")
-    results = {**config, **metrics, **metrics_2}
+    results = {**config, **metrics}
     with open(outfile, "w") as outfile:
         json.dump(results, outfile, indent=4)
 
