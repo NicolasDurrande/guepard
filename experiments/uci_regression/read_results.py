@@ -140,25 +140,42 @@ for dataset in selected_datasets:
 df_table = pd.DataFrame(table).set_index('dataset')
 st.dataframe(df_table)
 
+# Latex Table
+
+ranks = (
+    df[['dataset', 'model', 'nlpd', 'split']]
+        .groupby(['dataset', 'model'])
+        .agg({'nlpd': 'mean'})
+        .pivot_table(index="dataset", columns="model")
+        .rank(axis=1)
+        .mean(axis=0)
+)['nlpd']
+selected_models.sort(key=lambda m: ranks.at[m])
+
 assert len(selected_metrics) == 1
 table = f"""
 \\begin{{tabular}}{{{'lll' + 'c' * (len(selected_models))}}}
+\\toprule
 dataset & N & D & {' & '.join(map(_format_model, selected_models))} \\\\
 \\midrule
 """
+selected_datasets.sort(key=lambda d: df[df.dataset == d]['num_data'].values[0])
 for dataset in selected_datasets:
     N = df[df.dataset == dataset]['num_data'].values[0]
     D = df[df.dataset == dataset]['input_dim'].values[0]
     row = f"{_format_dataset(dataset)} & {N} & {D}"
     for metric in selected_metrics:
         for model in selected_models:
+            neg_value_in_col = any(map(lambda v: '-' in v, df_table[(model, metric)].values))
             vals = df[(df.dataset == dataset) & (df.model == model)][metric]
             m = np.mean(vals)
             s = np.std(vals) if len(vals) > 1 else None
-            row  += ' & ' + format_number(m, s)
+            row  += ' & ' + format_number(m, s, possibly_negative=neg_value_in_col)
 
     table += (row + " \\\\ \n")
 
+table += "\\midrule \n"
+table += f"Avg. rank & & & {' & '.join(map(lambda m: f'{ranks.at[m]:.2f}', selected_models))} \\\\ \n"
 table += "\\bottomrule \n"
 table += "\\end{tabular}" 
 st.text_area("Latex table", value=table, height=400)
