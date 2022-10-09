@@ -186,8 +186,6 @@ for dataset in selected_datasets:
     df_tmp = df2.xs(dataset, level='dataset', axis=1)[selected_metrics[0]]
     best_for_dataset[dataset] = n_best(df_tmp, 'mean', 'std', smaller_is_better=True)
 
-st.write(best_for_dataset)
-
 
 table = f"""
 \\begin{{tabular}}{{{'lll' + 'c' * (len(selected_models))}}}

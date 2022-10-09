@@ -97,9 +97,9 @@ if __name__ == "__main__":
 
     commands = (
         CommandsBuilder()
-        .add("dataset", UCI_LARGE)
-        .add("model", MODELS_BASELINE)
         .add("split", range(0, 5))
+        .add("dataset", UCI_SMALL + UCI_LARGE)
+        .add("model", ['gpr'])
         .build()
     )
 

@@ -113,3 +113,27 @@ gPoE_unif = lambda: _BaselineEnsemble(EnsembleMethods.GPOE, WeightingMethods.UNI
 gPoE_var = lambda: _BaselineEnsemble(EnsembleMethods.GPOE, WeightingMethods.VAR)
 rBCM_entr = lambda: _BaselineEnsemble(EnsembleMethods.RBCM, WeightingMethods.ENT)
 BAR_var = lambda: _BaselineEnsemble(EnsembleMethods.BARY, WeightingMethods.VAR)
+
+
+class GPR:
+
+    def fit(self, X_train, Y_train):
+        X_train = X_train[:5000]
+        Y_train = Y_train[:5000]
+
+        X_dim = X_train.shape[-1]
+        ard =  X_dim < 10
+        ells = np.ones((X_dim,)) if ard else 1.0
+        kernel = gpflow.kernels.SquaredExponential(lengthscales=ells)
+        gpr = gpflow.models.GPR((X_train, Y_train), kernel=kernel,)
+
+        gpflow.optimizers.scipy.Scipy().minimize(
+            gpr.training_loss_closure(),
+            gpr.trainable_variables,
+            options={"disp": True, "maxiter": Config.maxiter},
+        )
+        self.gpr = gpr
+
+    def predict(self, X_test: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        m, v = self.gpr.predict_y(X_test)
+        return m.numpy(), v.numpy()
