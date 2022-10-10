@@ -32,11 +32,11 @@ _FILE_DIR = Path(__file__).parent
 
 @dataclass(frozen=True)
 class Config:
-    num_models_in_ensemble: int = 500
+    num_models_in_ensemble: int = 100
     only_pretrain: bool = False
-    lr: float = 5e-3
+    lr: float = 5e-4
     num_inducing: int = 2000
-    num_data: int = None
+    num_data: int = 20_000
     batch_size: int = 1024
     num_training_steps: int = 200
     num_pretraining_steps: int = 100
@@ -45,8 +45,10 @@ class Config:
 _Config = Config()
 
 def get_data(seed=None):
-    X, Y, XT, YT = susy(_Config.num_data, seed=seed)
-    data = Dataset(X=X, Y=Y, X_test=XT, Y_test=YT)
+    # X, Y, XT, YT = susy(_Config.num_data, seed=seed)
+    X, Y, XT, YT = susy(None, seed=seed)
+    N = _Config.num_data
+    data = Dataset(X=X[:N], Y=Y[:N], X_test=XT, Y_test=YT)
     return data
 
 
