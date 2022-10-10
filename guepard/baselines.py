@@ -9,7 +9,9 @@
 
 from enum import Enum
 from itertools import zip_longest
+from re import M
 from typing import List, Optional, Union
+import abc
 
 import tensorflow as tf
 
@@ -241,3 +243,129 @@ class Ensemble(GPModel):
             mu = var * tf.reduce_sum(weight_matrix * prec_s * Me, axis=-1)
 
         return mu, var
+
+class GPEnsemble(GPModel, metaclass=abc.ABCMeta):
+    """
+    Base class for GP ensembles.
+    """
+
+    def __init__(
+        self,
+        models: List[GPModel],
+    ):
+        """
+        :param models: A list of GPflow models with the same prior and likelihood.
+        """
+        # check that all models are of the same type (e.g., GPR, SVGP)
+        # check that all models have the same prior
+        for model in models[1:]:
+            assert (
+                model.kernel == models[0].kernel
+            ), "All submodels must have the same kernel"
+            assert (
+                model.likelihood == models[0].likelihood
+            ), "All submodels must have the same likelihood"
+            assert (
+                model.mean_function == models[0].mean_function
+            ), "All submodels must have the same mean function"
+            assert (
+                model.num_latent_gps == models[0].num_latent_gps
+            ), "All submodels must have the same number of latent GPs"
+
+        GPModel.__init__(
+            self,
+            kernel=models[0].kernel,
+            likelihood=models[0].likelihood,
+            mean_function=models[0].mean_function,
+            num_latent_gps=models[0].num_latent_gps,
+        )
+
+        self.models: List[GPModel] = models
+
+    @property
+    def trainable_variables(self):  # type: ignore
+        r = []
+        for model in self.models:
+            r += model.trainable_variables
+        return r
+
+    def maximum_log_likelihood_objective(self, data: List[RegressionData]) -> tf.Tensor:  # type: ignore
+        [
+            isinstance(m, gpflow.models.ExternalDataTrainingLossMixin)
+            for m in self.models
+        ]
+        objectives = [m.training_loss(d) for m, d in zip_longest(self.models, data)]
+        return tf.reduce_sum(objectives)
+
+    def training_loss(
+        self, data: List[Union[None, RegressionData]] = [None]
+    ) -> tf.Tensor:
+        external = [
+            isinstance(m, gpflow.models.ExternalDataTrainingLossMixin)
+            for m in self.models
+        ]
+        objectives = [
+            m.training_loss(d) if ext else m.training_loss()
+            for m, ext, d in zip_longest(self.models, external, data)
+        ]
+        return tf.reduce_sum(objectives)
+
+    @abc.abstractclassmethod
+    @check_shapes(
+        "Xnew: [N, D]",
+        "return[0]: [N, broadcast L]",
+        "return[1]: [N, broadcast L]",
+    )
+    def predict_f(
+        self, Xnew: InputData, full_cov: bool = False, full_output_cov: bool = False
+    ) -> MeanAndVariance:
+        raise NotImplementedError
+
+
+class NestedGP(GPEnsemble):
+    """
+    Implements the Nested GP predictor (aka NPAE).
+    """
+
+    @check_shapes(
+        "Xnew: [N, D]",
+        "return[0]: [N, broadcast L]",
+        "return[1]: [N, broadcast L]",
+    )
+    def predict_f(
+        self, Xnew: InputData, full_cov: bool = False, full_output_cov: bool = False
+    ) -> MeanAndVariance:
+
+        assert not full_output_cov
+
+        X = tf.concat([m.data.X for m in self.models])
+        Y = tf.concat([m.data.Y for m in self.models])
+
+        print('X.shape: ', X.shape)  # [n, d]
+        print('Y.shape: ', Y.shape)  # [n, d]
+
+        ki_list = [self.kernel(Xnew, m.data.X) for m in self.models]  # elements are [q, ni] 
+        Ki_list = [tf.kernel(m.data.X) + self.likelihood.variance * tf.eye(m.data.X.shape[0]) for m in self.models] # elements are [ni, ni]
+
+        Alpha_list = [ki @ tf.linalg.inv(Ki) for ki, Ki in zip(ki_list, Ki_list)]   # elements are [q, ni]
+        Alpha = tf.linalg.LinearOperator(Alpha_list) # [q, p, n]
+        print('Alpha.shape: ', Alpha.shape)  
+
+        Mx = Alpha @ Y # [q, p, 1]
+        print('Mx.shape: ', Mx.shape)  # [q, p, 1]
+
+        kM_list = [tf.reduce_sum(alpha * ki, axis=1, keepdims=True) for alpha, ki in zip(Alpha_list, ki_list)] # elements are [q, 1] 
+        kM = tf.stack(kM_list, axis=2) # [q, 1, p] 
+
+        KM = Alpha @ tf.expand_dims(self.kernel(X), axis=0) @ tf.transpose(Alpha, perm=[0,2,1])
+
+        Alpha2 = kM @ tf.linalg.inv(KM)  # [q, 1, p]
+        mean =  Alpha2 @ Mx # [q, 1, 1]
+        mean = tf.transpose(mean[:, :, 0])
+        print('mean.shape: ', mean.shape) # [q, 1] 
+
+        var_correction = Alpha2 @ tf.transpose(kM, perm=[0,2,1]) # [q, 1, 1]
+        var = self.kernel.K_diag(Xnew) - tf.transpose(var_correction[:, :, 0])
+        print('var.shape: ', var.shape)  # [q, 1]
+
+        return mean, var
