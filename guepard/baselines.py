@@ -90,11 +90,12 @@ def compute_weights(
     elif weighting == WeightingMethods.ENT:
         return 0.5 * (tf.math.log(prior_var) - tf.math.log(var_s))
 
-    elif weighting == WeightingMethods.NONE:
+    elif weighting == WeightingMethods.NONE.value:
         return tf.ones_like(mu_s)
 
     else:
         raise NotImplementedError("Unknown weighting passed to compute_weights.")
+
 
 
 def normalize_weights(weight_matrix):
@@ -212,7 +213,7 @@ class Ensemble(GPModel):
         )
 
         # For all DgPs, normalized weights of experts requiring normalized weights and compute the aggegated local precisions
-        if self.method == EnsembleMethods.POE:
+        if self.method == EnsembleMethods.POE.value:
             prec = cs(tf.reduce_sum(prec_s, axis=-1), f"[N, {b} L]")
 
         elif self.method == EnsembleMethods.GPOE:
@@ -338,34 +339,30 @@ class NestedGP(GPEnsemble):
 
         assert not full_output_cov
 
-        X = tf.concat([m.data.X for m in self.models])
-        Y = tf.concat([m.data.Y for m in self.models])
+        X = tf.concat([m.data[0] for m in self.models], axis=0) # [n, d]
+        Y = tf.concat([m.data[1] for m in self.models], axis=0) # [n, 1]
 
-        print('X.shape: ', X.shape)  # [n, d]
-        print('Y.shape: ', Y.shape)  # [n, d]
-
-        ki_list = [self.kernel(Xnew, m.data.X) for m in self.models]  # elements are [q, ni] 
-        Ki_list = [tf.kernel(m.data.X) + self.likelihood.variance * tf.eye(m.data.X.shape[0]) for m in self.models] # elements are [ni, ni]
+        ki_list = [self.kernel(Xnew, m.data[0]) for m in self.models]  # elements are [q, ni] 
+        Ki_list = [self.kernel(m.data[0]) + self.likelihood.variance * tf.eye(m.data[0].shape[0], dtype=tf.float64) for m in self.models] # elements are [ni, ni]
 
         Alpha_list = [ki @ tf.linalg.inv(Ki) for ki, Ki in zip(ki_list, Ki_list)]   # elements are [q, ni]
-        Alpha = tf.linalg.LinearOperator(Alpha_list) # [q, p, n]
-        print('Alpha.shape: ', Alpha.shape)  
+        Alpha_ops = [tf.linalg.LinearOperatorFullMatrix(a[:, None, :]) for a in Alpha_list] 
+        Alpha = tf.linalg.LinearOperatorBlockDiag(Alpha_ops)  # [q, p, n]
 
-        Mx = Alpha @ Y # [q, p, 1]
-        print('Mx.shape: ', Mx.shape)  # [q, p, 1]
-
+        Mx = Alpha.matmul(Y) # [q, p, 1]
+ 
         kM_list = [tf.reduce_sum(alpha * ki, axis=1, keepdims=True) for alpha, ki in zip(Alpha_list, ki_list)] # elements are [q, 1] 
         kM = tf.stack(kM_list, axis=2) # [q, 1, p] 
 
-        KM = Alpha @ tf.expand_dims(self.kernel(X), axis=0) @ tf.transpose(Alpha, perm=[0,2,1])
+        K = tf.expand_dims(self.kernel(X), axis=0)
+        AM = Alpha.to_dense()
+        KM =   AM @ K @ tf.transpose(AM, perm=[0,2,1])
+        #KM = Alpha.matmul(Alpha.matmul(K), adjoint_arg=True)  # Should be more efficient numerically, but does not return the right values at the moment!
 
         Alpha2 = kM @ tf.linalg.inv(KM)  # [q, 1, p]
         mean =  Alpha2 @ Mx # [q, 1, 1]
-        mean = tf.transpose(mean[:, :, 0])
-        print('mean.shape: ', mean.shape) # [q, 1] 
 
         var_correction = Alpha2 @ tf.transpose(kM, perm=[0,2,1]) # [q, 1, 1]
-        var = self.kernel.K_diag(Xnew) - tf.transpose(var_correction[:, :, 0])
-        print('var.shape: ', var.shape)  # [q, 1]
+        var = self.kernel.K_diag(Xnew)[:, None] - var_correction[:, :, 0] # [q, 1]
 
-        return mean, var
+        return mean[:, 0, :], var
