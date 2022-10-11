@@ -90,7 +90,7 @@ def compute_weights(
     elif weighting == WeightingMethods.ENT:
         return 0.5 * (tf.math.log(prior_var) - tf.math.log(var_s))
 
-    elif weighting == WeightingMethods.NONE.value:
+    elif weighting == WeightingMethods.NONE:
         return tf.ones_like(mu_s)
 
     else:
@@ -213,7 +213,7 @@ class Ensemble(GPModel):
         )
 
         # For all DgPs, normalized weights of experts requiring normalized weights and compute the aggegated local precisions
-        if self.method == EnsembleMethods.POE.value:
+        if self.method == EnsembleMethods.POE:
             prec = cs(tf.reduce_sum(prec_s, axis=-1), f"[N, {b} L]")
 
         elif self.method == EnsembleMethods.GPOE:
