@@ -32,10 +32,10 @@ _FILE_DIR = Path(__file__).parent
 
 @dataclass(frozen=True)
 class Config:
-    num_models_in_ensemble: int = 100
-    only_pretrain: bool = False
+    num_models_in_ensemble: int = 10
+    only_pretrain: bool = True
     lr: float = 5e-4
-    num_inducing: int = 2000
+    num_inducing: int = 500
     num_data: int = 20_000
     batch_size: int = 1024
     num_training_steps: int = 200
@@ -61,7 +61,7 @@ def estimate_kernel(X_train, Y_train):
     gpflow.optimizers.scipy.Scipy().minimize(
         model.training_loss_closure(),
         model.trainable_variables,
-        options={"disp": True, "maxiter": 100},
+        options={"disp": True, "maxiter": 500},
     )
     return model
 
@@ -176,5 +176,5 @@ def main(seed: Optional[int] = 0):
         json.dump(results, outfile, indent=4)
 
 
-if __name__ == "__main__":
-    fire.Fire(main)
+# if __name__ == "__main__":
+#     fire.Fire(main)
