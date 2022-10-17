@@ -21,8 +21,7 @@ First, let's load some required packages
 
 
 TODO: 
- * Nice routines for initialising the sparseSVGP (e.g. from prior, from submodel, from ensemble)
- * Move some of the stuff here to a test
+ * add routines for initialising the sparseSVGP (e.g. from prior, from submodel, from ensemble)
  * Experiment: 
     - find dataset
     - proper timing (are they faster to train?)
