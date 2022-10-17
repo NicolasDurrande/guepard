@@ -81,7 +81,7 @@ def get_svgp_submodels(
 
 
 def init_ssvgp_with_ensemble(
-    M: List[SVGP], add_jitter: Optional[bool]=False
+    M: List[SVGP], add_jitter: Optional[bool] = False
 ) -> Tuple[List[Tensor], List[Tensor], List[Tensor]]:
     m_ens = EquivalentObsEnsemble(M)
     Zs = [m.inducing_variable.Z for m in M]
