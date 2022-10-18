@@ -1,7 +1,6 @@
 from typing import List, Optional, Tuple
 
 import numpy as np
-from scipy.cluster.vq import kmeans
 from tensorflow import Tensor
 
 import gpflow
@@ -37,6 +36,7 @@ def get_svgp_submodels(
     kernel: Kernel,
     likelihood: Likelihood = gpflow.likelihoods.Gaussian(variance=0.1),
     mean_function: Optional[MeanFunction] = None,
+    noise_variance: Optional[float] = 0.1,
     maxiter: int = 100,
 ) -> List[SVGP]:
     """
@@ -50,9 +50,15 @@ def get_svgp_submodels(
     if mean_function is None:
         mean_function = gpflow.mean_functions.Zero()
 
+    if likelihood is None:
+        assert noise_variance is not None
+        likelihood = gpflow.likelihoods.Gaussian(variance=noise_variance)
+
     def _create_submodel(data: RegressionData, num_inducing: int) -> SVGP:
         num_data = len(data[0])
-        centroids, _ = kmeans(data[0], min(num_data, num_inducing))
+        num_inducing = min(num_data, num_inducing)
+        centroids = data[0][:num_inducing]
+        # centroids, _ = kmeans(data[0], min(num_data, num_inducing))
         inducing_variable = gpflow.inducing_variables.InducingPoints(centroids)
         gpflow.set_trainable(inducing_variable, False)
         submodel = SVGP(
