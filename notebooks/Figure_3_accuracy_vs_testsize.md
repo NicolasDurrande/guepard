@@ -1,38 +1,35 @@
-# %%
+---
+jupyter:
+  jupytext:
+    cell_metadata_filter: -all
+    formats: ipynb,md
+    text_representation:
+      extension: .md
+      format_name: markdown
+      format_version: '1.3'
+      jupytext_version: 1.13.8
+  kernelspec:
+    display_name: 'Python 3.9.13 (''.venv'': poetry)'
+    language: python
+    name: python3
+---
+
+# Figure 3: Accuracy vs test size
+
+```python
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import itertools as it
 
 import gpflow
 
 import guepard
 from guepard.utilities import get_gpr_submodels
+```
 
-# %%
-
-
-def plot_mean_conf(x, mean, var, ax, color='C0'):
-    ax.plot(x, mean, color, lw=2)
-    ax.fill_between(
-        x[:, 0],
-        mean[:, 0] - 1.96 * np.sqrt(var[:, 0]),
-        mean[:, 0] + 1.96 * np.sqrt(var[:, 0]),
-        color=color,
-        alpha=0.2,
-    )
-
-
-def plot_model(m, ax, x=np.linspace(0, 1, 101)[:, None], plot_data=True, color='C0'):
-    if plot_data:
-        X, Y = m.data
-        ax.plot(X, Y, "kx", mew=1.)
-    
-    mean, var = m.predict_f(x)
-    plot_mean_conf(x, mean, var, ax, color)
-
-# %%
-
+```python
 def get_data(num_data, kernel):
     X = np.linspace(0, 1, num_data)[:, None]
     Y = gpflow.models.GPR((np.c_[-10.], np.c_[0.]), kernel, noise_variance=NOISE_VAR).predict_f_samples(X)
@@ -95,18 +92,26 @@ def compare_full_vs_agg(X, full, agg):
     ]
 
     return len_x_subset, kls
+```
 
-# %%
+```python
 NOISE_VAR = 1e-1
 LN_NUM_DATA = 5  # num_datapoints = 2 ** LN_NUM_DATA + 1
-REPS_ITER = range(25)
-# NUM_SPLITS_ITER = range(2, 10, 2)
+REPS_ITER = range(50)
 NUM_SPLITS_ITER = [2, 4, 8, 16]
 KERNEL = gpflow.kernels.SquaredExponential(lengthscales=.25)
-# %%
+
+X, Y = get_data(2 ** LN_NUM_DATA + 1, KERNEL)
+
+for i in range(LN_NUM_DATA + 1):
+    plt.plot(X, 0*X + i, 'kx')
+    xx = get_subset_of_data(X, i)
+    plt.plot(xx, 0*xx + i, 'C0o')
+```
+```python
 results = []
 
-import itertools as it
+
 
 for rep, num_splits in it.product(REPS_ITER, NUM_SPLITS_ITER):
     print(rep, num_splits)
@@ -115,16 +120,9 @@ for rep, num_splits in it.product(REPS_ITER, NUM_SPLITS_ITER):
     agg_gpr = get_aggregate_model(X, Y, num_splits, KERNEL)
     size, kl = compare_full_vs_agg(X, full_gpr, agg_gpr)
     results.extend({"rep": rep, "num_splits": num_splits, "kl": k, "size": s} for s,k in zip(size, kl))
+```
 
-#%%
-X, Y = get_data(2 ** LN_NUM_DATA + 1, KERNEL)
-
-for i in range(LN_NUM_DATA + 1):
-    plt.plot(X, 0*X + i, 'kx')
-    xx = get_subset_of_data(X, i)
-    plt.plot(xx, 0*xx + i, 'C0o')
-
-#%%
+```python
 df = pd.DataFrame(results)
 for i, num_splits in enumerate(NUM_SPLITS_ITER): 
     x_ = df[df.num_splits==num_splits]['size']+.3 * i
@@ -132,8 +130,9 @@ for i, num_splits in enumerate(NUM_SPLITS_ITER):
     plt.plot(x_, y_, f'C{i}.')
 
 plt.yscale('log')
+```
 
-#%%
+```python
 df = pd.DataFrame(results)
 df
 print(df)
@@ -149,9 +148,8 @@ def box_plot(data, x, label, edge_color, fill_color, manage_ticks=False):
         patch.set(facecolor=fill_color)       
         patch.set(alpha=.6)       
     
-
-
     return bp
+
 
 bps = []
 for i, num_splits in enumerate(NUM_SPLITS_ITER):
@@ -163,6 +161,7 @@ for i, num_splits in enumerate(NUM_SPLITS_ITER):
         if j == 0:
             bps.append(bp)
 
+
 labels = map(lambda s: f"P = {s}", NUM_SPLITS_ITER)
 ax.legend([bp["boxes"][0] for bp in bps], labels, loc='upper right')
 
@@ -171,65 +170,5 @@ plt.xticks(2 * np.arange(6), df['size'].unique())
 plt.xlabel("$q$")
 plt.ylabel("$\mathrm{KL}$")
 plt.tight_layout()
-plt.savefig("kl__vs__test_size.pdf")
-plt.savefig("kl__vs__test_size.png", transparent=False, facecolor="white")
-
-# %%
-def err(x):
-    err = 1.96 * x.std()
-    return err
-
-# %%
-df = df.groupby(["num_splits", "size"]).agg(
-    {
-        "rep": "count",
-        "kl": ["mean", "std", err]
-    }
-)
-df
-# %%
-
-for i, num_splits in enumerate(NUM_SPLITS_ITER):
-    r = df.xs(num_splits, axis=0, level="num_splits")
-    x, m, e = r.index.values, r["kl", "mean"].values, r["kl", "err"]
-    plt.plot(x, m, f"C{i}x-", label=f"P = {num_splits}")
-    plt.yscale('log')
-    plt.fill_between(x, m - e, m + e, color=f"C{i}", alpha=.2,)
-
-plt.legend(loc="lower left")
-plt.ylabel("KL divergence")
-plt.xlabel("Size X*")
-plt.savefig("pred_acc__vs__test_size.pdf")
-plt.savefig("pred_acc__vs__test_size.png", transparent=False, facecolor="white")
-# %%
-
-num_splits = 4
-X, Y = get_data(2 ** LN_NUM_DATA + 1, KERNEL)
-X_test = get_subset_of_data(X, 3)
-Y_test = np.array([
-    Y[np.argmin((X - x)**2)] for x in X_test
-])
-# %%
-
-plt.figure(figsize=(5,3))
-
-x_list = np.array_split(X, num_splits)  # list of num_split np.array
-y_list = np.array_split(Y, num_splits)  
-datasets = list(zip(x_list, y_list))
-for i, (X_, Y_) in enumerate(datasets):
-    plt.plot(X_, Y_, f'C{i}x', label=f"Data submodel {i+1}")
-
-plt.plot(X_test[len(X_test)//2], Y_test[len(X_test)//2], "k*", ms=15, label="$x^*=0.5$")
-plt.plot(X_test, Y_test, "ko", label=f"$X^*$")
-plt.legend(ncol=2)
-plt.xlabel("$x$")
-plt.ylabel("Data")
-plt.tight_layout()
-plt.savefig("experiment_setup.pdf")
-plt.savefig("experiment_setup.png", transparent=False, facecolor="white")
-plt.show()
-# %%
-
-print(xx)
-# plt.plot(X_, Y_, f'C{i}x')
-# %%
+plt.savefig("figures/acc_vs_testsize.pdf")
+```
