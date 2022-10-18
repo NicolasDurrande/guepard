@@ -28,18 +28,38 @@ _FILE_DIR = Path(__file__).parent
 @dataclass(frozen=True)
 class Config:
     num_models_in_ensemble: int = 10
-    num_inducing: int = 1024
-    num_data: int = 1_000_000
+    only_pretrain: bool = True
+    lr: float = 5e-4
+    num_inducing: int = 500
+    num_data: int = 20_000
     batch_size: int = 1024
-    num_training_steps: int = 5000
+    num_training_steps: int = 200
+    num_pretraining_steps: int = 100
     log_freq: int = 20
 
 _Config = Config()
 
 def get_data(seed=None):
-    X, Y, XT, YT = susy(_Config.num_data, seed=seed)
-    data = Dataset(X=X, Y=Y, X_test=XT, Y_test=YT)
+    # X, Y, XT, YT = susy(_Config.num_data, seed=seed)
+    X, Y, XT, YT = susy(None, seed=seed)
+    N = _Config.num_data
+    data = Dataset(X=X[:N], Y=Y[:N], X_test=XT, Y_test=YT)
     return data
+
+
+def estimate_kernel(X_train, Y_train):
+    data = (X_train, Y_train)
+    X_dim = data[0].shape[-1]
+    kernel = gpflow.kernels.Matern32(lengthscales=np.ones((X_dim,)) * 5e-1)
+    likelihood=gpflow.likelihoods.Bernoulli()
+    model = gpflow.models.VGP(data, kernel, likelihood)
+    gpflow.optimizers.scipy.Scipy().minimize(
+        model.training_loss_closure(),
+        model.trainable_variables,
+        options={"disp": True, "maxiter": 500},
+    )
+    return model
+
 
 
 def build_model(data) -> guepard.EquivalentObsEnsemble:
@@ -49,8 +69,15 @@ def build_model(data) -> guepard.EquivalentObsEnsemble:
         (data.X[label_X == p, :], data.Y[label_X == p, :])
         for p in range(_Config.num_models_in_ensemble)
     ]
+    print("Num experts", _Config.num_models_in_ensemble)
+    print("Max point per expert", max([len(t[0]) for t in data_list]))
+    print("Min point per expert", min([len(t[0]) for t in data_list]))
 
-    kernel = gpflow.kernels.Matern32(lengthscales=np.ones((X_dim,)) * 1e-1)
+    ells = np.array([0.31174366, 2.30417976, 5.94359217, 0.52124237, 3.01414852, 7.26889154, 0.26389877, 6.9380755 ])
+    kernel = gpflow.kernels.Matern32(lengthscales=ells)
+    kernel.variance.assign(3.05)
+    gpflow.set_trainable(kernel, False)
+    gpflow.utilities.print_summary(kernel)
     
     submodels = guepard.utilities.get_svgp_submodels(
         data_list=data_list,
@@ -58,10 +85,14 @@ def build_model(data) -> guepard.EquivalentObsEnsemble:
         kernel=kernel,
         mean_function=None,
         likelihood=gpflow.likelihoods.Bernoulli(),
-        maxiter=0,
+        maxiter=_Config.num_pretraining_steps,
     )
     ensemble = guepard.EquivalentObsEnsemble(submodels)
-    
+    if _Config.only_pretrain:
+        return ensemble
+
+    gpflow.set_trainable(kernel, True)
+
     def _create_dataset(data):
         dataset = tf.data.Dataset.from_tensor_slices(data)
         dataset = dataset.shuffle(buffer_size=10_000)
@@ -75,10 +106,10 @@ def build_model(data) -> guepard.EquivalentObsEnsemble:
     @tf.function
     def step() -> None:
         batch_list = list(map(next, dataset_list))
-        loss = lambda: ensemble.training_loss(batch_list)
+        loss = lambda: ensemble.training_loss()
         opt.minimize(loss, ensemble.trainable_variables)
 
-    opt = tf.keras.optimizers.Adam(1e-2)
+    opt = tf.keras.optimizers.Adam(_Config.lr)
     valid_data = list(map(next, dataset_list))
     tqdm_range = trange(_Config.num_training_steps)
     for i in tqdm_range:
@@ -92,6 +123,7 @@ def build_model(data) -> guepard.EquivalentObsEnsemble:
             l = ensemble.training_loss(valid_data).numpy()
             tqdm_range.set_description(f"{str(i).zfill(6)}: {l:.2f}")
 
+    gpflow.utilities.print_summary(kernel)
     return ensemble
 
 
@@ -120,7 +152,7 @@ def main(seed: Optional[int] = 0):
     config = {**asdict(_Config), **{'seed': seed}}
     # Hashing config to get unique filename...
     filename = date + '_' + str(abs(hash(frozenset(config.items()))))[:7] + "." + ext
-    outfile = _FILE_DIR / "results" / filename
+    outfile = _FILE_DIR / "tmp" / filename
     if outfile.exists():
         print("Experiment already exists. Quitting experiment.")
         return -1
@@ -132,11 +164,12 @@ def main(seed: Optional[int] = 0):
     print("Testing")
     metrics = evaluate(model.predict_y_marginals, data, batch_size=2048, name="marginals")
     print(metrics)
+
     print("Saving results")
     results = {**config, **metrics}
     with open(outfile, "w") as outfile:
         json.dump(results, outfile, indent=4)
 
 
-if __name__ == "__main__":
-    fire.Fire(main)
+# if __name__ == "__main__":
+#     fire.Fire(main)

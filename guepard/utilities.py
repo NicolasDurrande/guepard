@@ -1,6 +1,8 @@
 from typing import List, Optional, Tuple
 
 import numpy as np
+import tqdm
+from scipy.cluster.vq import kmeans
 from tensorflow import Tensor
 
 import gpflow
@@ -54,35 +56,51 @@ def get_svgp_submodels(
         assert noise_variance is not None
         likelihood = gpflow.likelihoods.Gaussian(variance=noise_variance)
 
+    elbos_pre = []
+    elbos_post = []
+
     def _create_submodel(data: RegressionData, num_inducing: int) -> SVGP:
         num_data = len(data[0])
         num_inducing = min(num_data, num_inducing)
-        centroids = data[0][:num_inducing]
-        # centroids, _ = kmeans(data[0], min(num_data, num_inducing))
+        # centroids = data[0][:num_inducing]
+        centroids, _ = kmeans(data[0], min(num_data, num_inducing))
         inducing_variable = gpflow.inducing_variables.InducingPoints(centroids)
         gpflow.set_trainable(inducing_variable, False)
-        submodel = SVGP(
+        # X_ = data[0][:num_inducing]
+        # Y_ = data[1][:num_inducing]
+        submodel = gpflow.models.SVGP(
+            # (X_, Y_),
             kernel=kernel,
             likelihood=likelihood,
             inducing_variable=inducing_variable,
             mean_function=mean_function,
-            whiten=False,
+            # whiten=True,
         )
+
         if maxiter > 0:
-            print(
-                "Note that the Guepard model requires equal priors."
-                "Training the models seperately will lead to different hyperparameters."
-            )
+            # obj = submodel.training_loss_closure()
+            obj = submodel.training_loss_closure(data)
+            elbos_pre.append(obj())
             gpflow.optimizers.scipy.Scipy().minimize(
-                submodel.training_loss_closure(data),
+                obj,
                 submodel.trainable_variables,
                 options={"disp": False, "maxiter": maxiter},
             )
+            elbos_post.append(obj())
         return submodel
 
+    print("Training submodels...")
     models = [
-        _create_submodel(data, M) for data, M in zip(data_list, num_inducing_list)
+        _create_submodel(data, M)
+        for data, M in tqdm.tqdm(
+            zip(data_list, num_inducing_list), total=len(data_list)
+        )
     ]
+
+    # plt.hist(tf.concat(elbos_pre, axis=0).numpy(), label="PRE")
+    # plt.hist(tf.concat(elbos_post, axis=0).numpy(), label="POST")
+    # plt.legend()
+    # plt.savefig("objective.png")
     return models
 
 
