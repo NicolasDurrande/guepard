@@ -1,0 +1,4 @@
+git+https://github.com/secondmind-labs/bayesian_benchmarks.git
+sacred
+openpyxl
+git+https://github.com/treforevans/uci_datasets.git

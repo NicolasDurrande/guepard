@@ -13,11 +13,10 @@ jupyter:
     name: python3
 ---
 
-# Merging SVGP ensembles using equivalent observations
+# SVGP ensembles and sparse SVGP on the banana dataset
 
-This notebook illustrates how to use the equivalent observation framework to train an ensemble of GP classification models and to make predictions with it.
+This notebook contains the code to generate figures 2 and 4. It takes around a minute to run.
 
-First, let's load some required packages
 
 ```python
 import numpy as np
@@ -36,10 +35,10 @@ from IPython.core.display import display, HTML
 display(HTML("<style>div.output_scroll { height: 150em; }</style>"));
 ```
 
-We now load the banana dataset: This is a binary classification problem with two classes. 
+## Figure 2: SVGP ensembles on the banana dataset
 
 ```python
-data = sio.loadmat('../../data/banana.mat')
+data = sio.loadmat('../data/banana.mat')
 Y = data['banana_Y']
 X = data['banana_X']
 
@@ -47,10 +46,11 @@ x1_lim = [-3.5, 3.5]
 x2_lim = [-3.5, 3.5]
 
 fig, ax = plt.subplots(figsize=(6, 6))
-ax.axhline(0, color='k', linestyle="dashed", alpha=0.5, linewidth=.5)
-ax.axvline(0, color='k', linestyle="dashed", alpha=0.5, linewidth=.5)
+
 ax.plot(X[Y[:, 0] == 0, 0], X[Y[:, 0] == 0, 1], 'o', color="C0", ms=3, alpha=0.3, label="$y=0$")
 ax.plot(X[Y[:, 0] == 1, 0], X[Y[:, 0] == 1, 1], 'o', color="C1", ms=3, alpha=0.3, label="$y=1$")
+ax.axhline(0, color='k', linestyle="dashed", alpha=0.75, linewidth=1)
+ax.axvline(0, color='k', linestyle="dashed", alpha=0.75, linewidth=1)
 
 ax.set_xlim(x1_lim)
 ax.set_ylim(x2_lim)
@@ -59,7 +59,7 @@ ax.axes.xaxis.set_ticklabels([])
 ax.axes.yaxis.set_ticklabels([])
 
 plt.tight_layout()
-#plt.savefig("plots/banana_data.pdf")
+plt.savefig("figures/banana_data.pdf")
 ```
 
 We then split the dataset in four, with one subset per quadrant of the input space:
@@ -77,8 +77,7 @@ for i in range(2):
     for j in range(2):
         k = 2 * i + j
         
-        axes[i,j].axhline(0, color='k', linestyle="dashed", alpha=0.5, linewidth=.5)
-        axes[i,j].axvline(0, color='k', linestyle="dashed", alpha=0.5, linewidth=.5)
+
 
         X_ = X[masks[k], :]
         Y_ = Y[masks[k], :]
@@ -88,13 +87,16 @@ for i in range(2):
         axes[i, j].plot(X[Y[:, 0] == 0, 0], X[Y[:, 0] == 0, 1], 'o', color="C0", ms=3, alpha=0.02, label="$y=0$")
         axes[i, j].plot(X[Y[:, 0] == 1, 0], X[Y[:, 0] == 1, 1], 'o', color="C1", ms=3, alpha=0.02, label="$y=1$")
 
+        axes[i,j].axhline(0, color='k', linestyle="dashed", alpha=0.75, linewidth=.5)
+        axes[i,j].axvline(0, color='k', linestyle="dashed", alpha=0.75, linewidth=.5)
+
         axes[i, j].set_xticks(np.arange(-3, 4))
         axes[i, j].set_yticks(np.arange(-3, 4))
         axes[i, j].axes.xaxis.set_ticklabels([])
         axes[i, j].axes.yaxis.set_ticklabels([])
 
 plt.tight_layout()
-#plt.savefig("plots/banana_subdata.pdf")
+
 ```
 
 We build an SVGP model for each data subset, with 15 inducing variables for each of them. Note that all submodels share the same kernel and that the kernel parameters are fixed.
@@ -154,7 +156,7 @@ for i in range(2):
         axes[i, j].axes.yaxis.set_ticklabels([])
 
 plt.tight_layout()
-#plt.savefig("plots/banana_submodels.pdf")
+plt.savefig("figures/banana_submodels.pdf")
 ```
 
 We can also plot the submodel predictions in the latent space
@@ -191,7 +193,7 @@ for i in range(2):
         axes[i, j].plot(Z[:, 0], Z[:, 1], "ko", ms=2., alpha=.4)
         
         Ftest, Vtest_full = M[k].predict_f(Xtest, full_cov=True)
-        plot_latent(Ftest, Vtest_full, X1_grid, X2_grid, axes[i,j], num_sample=50) # The figure in paper has num_sample=50
+        plot_latent(Ftest, Vtest_full, X1_grid, X2_grid, axes[i,j], num_sample=50)
 
         axes[i,j].axhline(0, color='k', linestyle="dashed", alpha=0.2, linewidth=.5)
         axes[i,j].axvline(0, color='k', linestyle="dashed", alpha=0.2, linewidth=.5)
@@ -202,7 +204,7 @@ for i in range(2):
         axes[i, j].axes.yaxis.set_ticklabels([])
 
 plt.tight_layout()
-#plt.savefig("plots/banana_sublatents.pdf")
+plt.savefig("figures/banana_sublatents.pdf")
 ```
 
 We can now use the equivalent observation framework to merge these four submodels
@@ -218,7 +220,7 @@ fig, ax = plt.subplots(figsize=(6, 6))
 
 [plt.plot(m.inducing_variable.Z[:, 0], m.inducing_variable.Z[:, 1], "ko", ms=2., alpha=.4) for m in m_agg.models]
 
-plot_latent(Ftest, Vtest_full, X1_grid, X2_grid, ax, num_sample=100)  # the figure in the paper uses num_sample=100 
+plot_latent(Ftest, Vtest_full, X1_grid, X2_grid, ax, num_sample=100)
 
 ax.axhline(0, color='k', linestyle="dashed", alpha=0.5, linewidth=.5)
 ax.axvline(0, color='k', linestyle="dashed", alpha=0.5, linewidth=.5)
@@ -229,30 +231,43 @@ ax.axes.xaxis.set_ticklabels([])
 ax.axes.yaxis.set_ticklabels([])
 
 plt.tight_layout()
-#plt.savefig("plots/banana_latents.pdf")
+plt.savefig("figures/banana_mergedlatents.pdf")
 
 ```
 
 For comparison we fit an SVGP model with the same kernel, same inducing location Z, but an optimised distribution for the inducing variables.
 
 ```python
+import time
+maxiter = 1000
+
+def callback(x):
+    global times
+    global traces
+    times += [time.time()]
+    traces += [training_loss().numpy()]
+
 Z = np.vstack([m.inducing_variable.Z for m in m_agg.models])
-q_mu, q_sigma = m_agg.predict_f(Z, full_cov=True)
-q_sqrt = np.linalg.cholesky(q_sigma)
+q_mu, q_sigma = None, None 
+q_sqrt = None
 
 m_svgp = gpflow.models.SVGP(inducing_variable=Z, likelihood=lik, kernel=kernel, mean_function=mean_function,
                       q_mu=q_mu, q_sqrt=q_sqrt, whiten=False)
 gpflow.set_trainable(m_svgp.inducing_variable, False)
 
+# Optimising the model. 
+# Note that we record the optim traces, they will be compared to an sparse SVGP down the line
+traces = []
+times = []
+training_loss = m_svgp.training_loss_closure((X, Y))
 opt = gpflow.optimizers.Scipy()
-opt_logs = opt.minimize(m_svgp.training_loss_closure((X, Y)), m_svgp.trainable_variables);
-
-gpflow.set_trainable(m_svgp.inducing_variable, False)
-
-opt = gpflow.optimizers.Scipy()
-opt_logs = opt.minimize(m_svgp.training_loss_closure((X, Y)), m_svgp.trainable_variables)
+opt_logs = opt.minimize(training_loss, m_svgp.trainable_variables, callback=callback, options={'maxiter':maxiter})
 
 Ysvgp = m_svgp.predict_y(Xtest)[0]
+
+Traces_svgp = -np.array(traces)
+Times_svgp = np.array(times) - times[0]
+
 ```
 
 ```python
@@ -281,7 +296,7 @@ ax.axes.xaxis.set_ticks([-3, 0, 3])
 ax.axes.yaxis.set_ticks([-3, 0, 3])
 
 plt.tight_layout()
-# plt.savefig("plots/banana_models.pdf")
+plt.savefig("figures/banana_models.pdf")
 ```
 
 we can plot the absolute error
@@ -304,6 +319,78 @@ ax.set_ylabel("$x_2$", fontsize=14)
 ax.set_xlim(x1_lim)
 ax.set_ylim(x2_lim)
 ```
+## Figure 4: Further training under a unified SVGP ELBO
+
+Instead of training separately the variational parameters of the submodels, we now explore how much the model can be improved by retraining them under a unifed ELBO corresponding to a sparse parametrisation in the precision space.
+
+```python
+Zs, q_mus, q_sqrts = guepard.utilities.init_ssvgp_with_ensemble(m_agg.models, add_jitter=True) 
+m_ssvgp = guepard.SparseSVGP(kernel, lik, Zs, q_mus, q_sqrts, whiten=False)
+gpflow.set_trainable(m_ssvgp.inducing_variable, False)
+
+traces = []
+times = []
+training_loss = m_ssvgp.training_loss_closure((X, Y), compile=True)
+opt = gpflow.optimizers.Scipy()
+opt.minimize(training_loss, m_ssvgp.trainable_variables, callback=callback, options={'maxiter':maxiter})
+
+Traces_ssvgp = -np.array(traces)
+Times_ssvgp = np.array(times) - times[0]
+
+```
+
+```python
+f, (ax, ax2) = plt.subplots(2, 1, figsize=(5, 3.5))
+delta=20
+# plot the same data on both axes
+ax.plot(Traces_ssvgp, "C0", label="Sparse Precision SVGP")
+ax.plot(Traces_svgp, "C1", label="Classic SVGP parametrisation")
+ax.set_ylim((-1200 - delta, -1201))
+ax.legend(frameon=False)
+ax.set_yticks([ -1215, -1205])
+
+ax2.plot(Traces_ssvgp, "C0", label="Sparse Precision SVGP")
+ax2.plot(Traces_svgp, "C1", label="Classic SVGP parametrisation")
+ax2.set_ylim((np.min(Traces_svgp)-2,np.min(Traces_svgp)+delta - 3))
+ax2.set_yticks([-4660, -4650])
+ax2.set_xlabel("iteration", fontsize=14)
+ax2.set_ylabel(" ", fontsize=14)
+
+ax.spines['bottom'].set_visible(False)
+ax2.spines['top'].set_visible(False)
+ax.xaxis.tick_top()
+ax.tick_params(labeltop=False)  # don't put tick labels at the top
+ax2.xaxis.tick_bottom()
+
+d = .010  # how big to make the diagonal lines in axes coordinates
+# arguments to pass to plot, just so we don't keep repeating them
+kwargs = dict(transform=ax.transAxes, color='k', linewidth=1., clip_on=False)
+ax.plot((-d, +d), (-d, +d), **kwargs)        # top-left diagonal
+ax.plot((1 - d, 1 + d), (-d, +d), **kwargs)  # top-right diagonal
+
+kwargs.update(transform=ax2.transAxes)  # switch to the bottom axes
+ax2.plot((-d, +d), (1 - d, 1 + d), **kwargs)  # bottom-left diagonal
+ax2.plot((1 - d, 1 + d), (1 - d, 1 + d), **kwargs)  # bottom-right diagonal
+
+f.text(0.02, 0.55, 'ELBO', fontsize=14, va='center', rotation='vertical')
+plt.tight_layout()
+plt.savefig('figures/sparse_precision_SVGP_traces.pdf')
+```
+
+```python
+print("SSVGP trace (init, converged): ", np.min(Traces_ssvgp), np.max(Traces_ssvgp))
+print("SVGP trace (init, converged): ", np.min(Traces_svgp), np.max(Traces_svgp))
+
+print(f"SSVGP requires {Traces_ssvgp.shape[0] / Traces_svgp.shape[0]:.2f} times more iterations")
+```
+
+```python
+print('times per iter SSVGP iteration:', Times_ssvgp[-1] / Traces_ssvgp.shape)
+print('times per iter SVGP iteration:', Times_svgp[-1] / Traces_svgp.shape)
+
+print("comparing the number of variational parameters:", 4 * (15 + (15 * 16)/2), "vs", 60 + (60 * 61)/2)
+```
+
 
 
 

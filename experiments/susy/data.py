@@ -1,7 +1,7 @@
 from typing import Optional
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 
 def susy(N=None, test_percentage=0.1, feature_set="low_level", seed: Optional[int]=0):

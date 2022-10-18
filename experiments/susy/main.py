@@ -1,30 +1,25 @@
 """
 Train and evaluate SVGP model on SUSY dataset.
 """
-from typing import Optional
 import datetime
-from pathlib import Path
-from collections import namedtuple
-from dataclasses import dataclass, asdict
-from typing import Callable
-from tqdm import tqdm, trange
 import json
+from collections import namedtuple
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import Callable, Optional
+
 import fire
-
-
+import matplotlib.pyplot as plt
 import numpy as np
+import tensorflow as tf
 from scipy.cluster import vq
 from sklearn.metrics import auc, roc_curve
+from tqdm import tqdm, trange
 
-import matplotlib.pyplot as plt
-import tensorflow as tf
 import gpflow
 
 import guepard
-
-
 from data import susy
-
 
 Dataset = namedtuple("Dataset", ["X", "Y", "X_test", "Y_test"])
 _FILE_DIR = Path(__file__).parent

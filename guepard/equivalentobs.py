@@ -116,7 +116,7 @@ class EquivalentObsEnsemble(GPModel):
         # pseudo_noise = vp @ tf.linalg.inv(vp - Ve + Jitter) @ vp - vp
 
         def A_inv_b(chol_A, b):  # type: ignore
-            """Solves A^-1 b using using triagular solves
+            """Solves A^-1 b using using triangular solves
 
             .. math ::
                 A^{-1} b
@@ -156,10 +156,6 @@ class EquivalentObsEnsemble(GPModel):
 
         return tf.transpose(mean[:, :, 0]), var
 
-    def predict_y_marginals(self, Xnew: InputData) -> MeanAndVariance:
-        m, v = self.predict_f_marginals(Xnew)
-        return self.likelihood.predict_mean_and_var(Xnew, m, v)
-
     def predict_f_marginals(self, Xnew: InputData) -> MeanAndVariance:
         """
         Fastest method for aggregating marginal submodel predictions.
@@ -190,3 +186,7 @@ class EquivalentObsEnsemble(GPModel):
         )
 
         return mean, var
+
+    def predict_y_marginals(self, Xnew: InputData) -> MeanAndVariance:
+        m, v = self.predict_f_marginals(Xnew)
+        return self.likelihood.predict_mean_and_var(Xnew, m, v)
