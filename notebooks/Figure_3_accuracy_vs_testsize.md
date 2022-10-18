@@ -98,7 +98,7 @@ def compare_full_vs_agg(X, full, agg):
 NOISE_VAR = 1e-1
 LN_NUM_DATA = 5  # num_datapoints = 2 ** LN_NUM_DATA + 1
 REPS_ITER = range(50)
-NUM_SPLITS_ITER = [2, 4, 8, 16]
+NUM_SPLITS_ITER = [2, 4, 8, 12, 16]
 KERNEL = gpflow.kernels.SquaredExponential(lengthscales=.25)
 
 X, Y = get_data(2 ** LN_NUM_DATA + 1, KERNEL)
@@ -110,8 +110,6 @@ for i in range(LN_NUM_DATA + 1):
 ```
 ```python
 results = []
-
-
 
 for rep, num_splits in it.product(REPS_ITER, NUM_SPLITS_ITER):
     print(rep, num_splits)
@@ -134,9 +132,8 @@ plt.yscale('log')
 
 ```python
 df = pd.DataFrame(results)
-df
 print(df)
-# plt.figure()
+
 fig, ax = plt.subplots(figsize=(5, 3))
 def box_plot(data, x, label, edge_color, fill_color, manage_ticks=False):
     bp = ax.boxplot(data, positions=[x], patch_artist=True, manage_ticks=manage_ticks, showfliers=False, widths=.2)
@@ -156,7 +153,7 @@ for i, num_splits in enumerate(NUM_SPLITS_ITER):
     for j in range(LN_NUM_DATA + 1):
         s = len(get_subset_of_data(X, j))
         data = df[(df.num_splits==num_splits) & (df['size'] == s)]['kl'].values
-        x = 2 * j + (i * .3) - .45
+        x = 2 * j + (i * .25) - .45
         bp = box_plot(data, x, i, edge_color=f'C{i}', fill_color=f'C{i}')
         if j == 0:
             bps.append(bp)
@@ -166,9 +163,13 @@ labels = map(lambda s: f"P = {s}", NUM_SPLITS_ITER)
 ax.legend([bp["boxes"][0] for bp in bps], labels, loc='upper right')
 
 plt.xticks(2 * np.arange(6), df['size'].unique())
-# plt.yscale('log')
+plt.yscale('log')
 plt.xlabel("$q$")
 plt.ylabel("$\mathrm{KL}$")
 plt.tight_layout()
 plt.savefig("figures/acc_vs_testsize.pdf")
+```
+
+```python
+
 ```
