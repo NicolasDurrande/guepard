@@ -1,9 +1,9 @@
 from typing import List, Optional, Tuple
 
 import numpy as np
+import tqdm
 from tensorflow import Tensor
 
-import tqdm
 import gpflow
 from gpflow.base import RegressionData
 from gpflow.kernels import Kernel
@@ -57,8 +57,9 @@ def get_svgp_submodels(
 
     elbos_pre = []
     elbos_post = []
+
     def _create_submodel(data: RegressionData, num_inducing: int) -> SVGP:
-        num_data = len(data[0])
+        len(data[0])
         # num_inducing = min(num_data, num_inducing)
         # centroids = data[0][:num_inducing]
         # centroids, _ = kmeans(data[0], min(num_data, num_inducing))
@@ -87,10 +88,14 @@ def get_svgp_submodels(
 
     print("Training submodels...")
     models = [
-        _create_submodel(data, M) for data, M in tqdm.tqdm(zip(data_list, num_inducing_list), total=len(data_list))
+        _create_submodel(data, M)
+        for data, M in tqdm.tqdm(
+            zip(data_list, num_inducing_list), total=len(data_list)
+        )
     ]
     import matplotlib.pyplot as plt
     import tensorflow as tf
+
     plt.hist(tf.concat(elbos_pre, axis=0).numpy(), label="PRE")
     plt.hist(tf.concat(elbos_post, axis=0).numpy(), label="POST")
     plt.legend()

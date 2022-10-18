@@ -1,7 +1,7 @@
-import pandas as pd
-import json
 import glob
+import json
 
+import pandas as pd
 
 file_regex = "./results2/*"
 data = []
