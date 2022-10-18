@@ -1,11 +1,11 @@
 from typing import List, Optional
 
 import tensorflow as tf
+from check_shapes import check_shapes, inherit_check_shapes
 
 import gpflow
 from gpflow.base import InputData, MeanAndVariance, Parameter, RegressionData
 from gpflow.config import default_float
-from gpflow.experimental.check_shapes import check_shapes, inherit_check_shapes
 from gpflow.kernels import Kernel
 from gpflow.likelihoods import Likelihood
 from gpflow.mean_functions import MeanFunction

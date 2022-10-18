@@ -59,24 +59,26 @@ def get_svgp_submodels(
     elbos_post = []
 
     def _create_submodel(data: RegressionData, num_inducing: int) -> SVGP:
-        len(data[0])
-        # num_inducing = min(num_data, num_inducing)
-        # centroids = data[0][:num_inducing]
+        num_data = len(data[0])
+        num_inducing = min(num_data, num_inducing)
+        centroids = data[0][:num_inducing]
         # centroids, _ = kmeans(data[0], min(num_data, num_inducing))
-        # inducing_variable = gpflow.inducing_variables.InducingPoints(centroids)
-        # gpflow.set_trainable(inducing_variable, False)
-        X_ = data[0][:num_inducing]
-        Y_ = data[1][:num_inducing]
-        submodel = gpflow.models.VGP(
-            (X_, Y_),
+        inducing_variable = gpflow.inducing_variables.InducingPoints(centroids)
+        gpflow.set_trainable(inducing_variable, False)
+        # X_ = data[0][:num_inducing]
+        # Y_ = data[1][:num_inducing]
+        submodel = gpflow.models.SVGP(
+            # (X_, Y_),
             kernel=kernel,
             likelihood=likelihood,
-            # inducing_variable=inducing_variable,
+            inducing_variable=inducing_variable,
             mean_function=mean_function,
             # whiten=True,
         )
+
         if maxiter > 0:
-            obj = submodel.training_loss_closure()
+            # obj = submodel.training_loss_closure()
+            obj = submodel.training_loss_closure(data)
             elbos_pre.append(obj())
             gpflow.optimizers.scipy.Scipy().minimize(
                 obj,
@@ -93,13 +95,11 @@ def get_svgp_submodels(
             zip(data_list, num_inducing_list), total=len(data_list)
         )
     ]
-    import matplotlib.pyplot as plt
-    import tensorflow as tf
 
-    plt.hist(tf.concat(elbos_pre, axis=0).numpy(), label="PRE")
-    plt.hist(tf.concat(elbos_post, axis=0).numpy(), label="POST")
-    plt.legend()
-    plt.savefig("objective.png")
+    # plt.hist(tf.concat(elbos_pre, axis=0).numpy(), label="PRE")
+    # plt.hist(tf.concat(elbos_post, axis=0).numpy(), label="POST")
+    # plt.legend()
+    # plt.savefig("objective.png")
     return models
 
 
