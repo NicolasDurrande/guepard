@@ -100,7 +100,8 @@ def compare_full_vs_agg(X, full, agg):
 NOISE_VAR = 1e-1
 LN_NUM_DATA = 5  # num_datapoints = 2 ** LN_NUM_DATA + 1
 REPS_ITER = range(25)
-NUM_SPLITS_ITER = range(2, 10, 2)
+# NUM_SPLITS_ITER = range(2, 10, 2)
+NUM_SPLITS_ITER = [2, 4, 8, 16]
 KERNEL = gpflow.kernels.SquaredExponential(lengthscales=.25)
 # %%
 results = []
@@ -167,7 +168,7 @@ ax.legend([bp["boxes"][0] for bp in bps], labels, loc='upper right')
 
 plt.xticks(2 * np.arange(6), df['size'].unique())
 # plt.yscale('log')
-plt.xlabel("$|X^*|$")
+plt.xlabel("$q$")
 plt.ylabel("$\mathrm{KL}$")
 plt.tight_layout()
 plt.savefig("kl__vs__test_size.pdf")
