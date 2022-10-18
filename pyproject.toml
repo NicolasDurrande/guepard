@@ -15,6 +15,7 @@ matplotlib = "^3.3.3"
 tensorflow-probability = "<=0.13"
 protobuf = "3.19.0"
 gpflux = { git = "https://github.com/secondmind-labs/GPflux.git", branch = "develop" }
+tqdm = "^4.0.0" 
 
 [tool.poetry.dev-dependencies]
 taskipy = "^1.2.0"
