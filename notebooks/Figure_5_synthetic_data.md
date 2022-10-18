@@ -173,7 +173,6 @@ for i in range(num_models):
         j += 1
         plt.plot(TIME[:, i], NLPD[:, i], linestyle="", color=f"C{j}", label=method_name[i])
 
-        
 
 plt.legend(ncol=2)
 plt.xlabel('time (s)', fontsize=14)
