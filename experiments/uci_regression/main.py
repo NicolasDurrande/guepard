@@ -1,21 +1,16 @@
-from typing import Callable, Tuple
-
 import datetime
 import json
 import pprint
 from pathlib import Path
-from typing import Any, Optional, Type
+from typing import Any, Callable, Optional, Tuple, Type
 
 import numpy as np
-from bayesian_benchmarks.data import _ALL_REGRESSION_DATATSETS
-from bayesian_benchmarks.data import Dataset
+from bayesian_benchmarks.data import _ALL_REGRESSION_DATATSETS, Dataset
+from models import GPR, BAR_var, GuepardRegression, gPoE_unif, gPoE_var, rBCM_entr
 from sacred import Experiment
 from scipy.stats import norm
-from utils import ExperimentName
-
 from sklearn_models import SVM, LinearRegressionModel
-from models import GuepardRegression, gPoE_unif, gPoE_var, rBCM_entr, BAR_var, GPR
-
+from utils import ExperimentName
 
 _THIS_DIR = Path(__file__).parent
 _LOGS = _THIS_DIR / "tmp"

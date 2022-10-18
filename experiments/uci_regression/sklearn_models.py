@@ -1,12 +1,14 @@
 import numpy as np
+from sklearn import (
+    ensemble,
+    linear_model,
+    naive_bayes,
+    neighbors,
+    neural_network,
+    svm,
+    tree,
+)
 
-from sklearn import linear_model
-from sklearn import neighbors
-from sklearn import svm
-from sklearn import naive_bayes
-from sklearn import tree
-from sklearn import ensemble
-from sklearn import neural_network
 
 def _regression_model(model):
     class SKLWrapperRegression(object):

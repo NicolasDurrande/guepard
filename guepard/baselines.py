@@ -243,9 +243,15 @@ class Ensemble(GPModel):
 
         return mu, var
 
-    def predict_y(self, Xnew):
+    def predict_y(
+        self, Xnew: InputData, full_cov: bool = False, full_output_cov: bool = False
+    ) -> MeanAndVariance:
+        assert not full_cov
+        assert not full_output_cov
+
         m, v = self.predict_f(Xnew)
         return self.likelihood.predict_mean_and_var(Xnew, m, v)
+
 
 class GPEnsemble(GPModel, metaclass=abc.ABCMeta):
     """

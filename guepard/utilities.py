@@ -1,7 +1,6 @@
 from typing import List, Optional, Tuple
 
 import numpy as np
-from scipy.cluster.vq import kmeans
 from tensorflow import Tensor
 
 import gpflow
@@ -39,7 +38,6 @@ def get_svgp_submodels(
     mean_function: Optional[MeanFunction] = None,
     noise_variance: Optional[float] = 0.1,
     maxiter: int = 100,
-    likelihood = Optional[gpflow.likelihoods.Likelihood]
 ) -> List[SVGP]:
     """
     Helper function to build a list of GPflow SVGP submodels from a list of datasets, a GP prior and a likelihood variance.

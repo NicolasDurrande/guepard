@@ -1,13 +1,13 @@
-from typing import Tuple, List, final
-from scipy.cluster import vq
+from typing import List, Tuple, final
 
 import numpy as np
 import tensorflow as tf
+from scipy.cluster import vq
 
 import gpflow
 
 import guepard
-from guepard.baselines import EnsembleMethods, WeightingMethods, Ensemble
+from guepard.baselines import Ensemble, EnsembleMethods, WeightingMethods
 
 
 class Config:

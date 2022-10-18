@@ -1,12 +1,11 @@
-from typing import Set 
 import glob
 import json
 import time
+from typing import Set
 
 import numpy as np
 import pandas as pd
 import streamlit as st
-
 
 st.title("Visualise results")
 
