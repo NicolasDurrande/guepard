@@ -2,6 +2,7 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 import tqdm
+from scipy.cluster.vq import kmeans
 from tensorflow import Tensor
 
 import gpflow
@@ -61,8 +62,8 @@ def get_svgp_submodels(
     def _create_submodel(data: RegressionData, num_inducing: int) -> SVGP:
         num_data = len(data[0])
         num_inducing = min(num_data, num_inducing)
-        centroids = data[0][:num_inducing]
-        # centroids, _ = kmeans(data[0], min(num_data, num_inducing))
+        # centroids = data[0][:num_inducing]
+        centroids, _ = kmeans(data[0], min(num_data, num_inducing))
         inducing_variable = gpflow.inducing_variables.InducingPoints(centroids)
         gpflow.set_trainable(inducing_variable, False)
         # X_ = data[0][:num_inducing]
