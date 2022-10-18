@@ -7,6 +7,7 @@
 # - subclassed as GPModel
 
 
+import abc
 from enum import Enum
 from itertools import zip_longest
 from typing import List, Optional, Union
@@ -95,7 +96,7 @@ def compute_weights(
         raise NotImplementedError("Unknown weighting passed to compute_weights.")
 
 
-def normalize_weights(weight_matrix):
+def normalize_weights(weight_matrix: tf.Tensor) -> tf.Tensor:
     sum_weights = tf.reduce_sum(weight_matrix, axis=-1, keepdims=True)
     weight_matrix = weight_matrix / sum_weights
     return weight_matrix
@@ -245,3 +246,127 @@ class Ensemble(GPModel):
     def predict_y(self, Xnew):
         m, v = self.predict_f(Xnew)
         return self.likelihood.predict_mean_and_var(Xnew, m, v)
+
+class GPEnsemble(GPModel, metaclass=abc.ABCMeta):
+    """
+    Base class for GP ensembles.
+    """
+
+    def __init__(
+        self,
+        models: List[GPModel],
+    ):
+        """
+        :param models: A list of GPflow models with the same prior and likelihood.
+        """
+        # check that all models are of the same type (e.g., GPR, SVGP)
+        # check that all models have the same prior
+        for model in models[1:]:
+            assert (
+                model.kernel == models[0].kernel
+            ), "All submodels must have the same kernel"
+            assert (
+                model.likelihood == models[0].likelihood
+            ), "All submodels must have the same likelihood"
+            assert (
+                model.mean_function == models[0].mean_function
+            ), "All submodels must have the same mean function"
+            assert (
+                model.num_latent_gps == models[0].num_latent_gps
+            ), "All submodels must have the same number of latent GPs"
+
+        GPModel.__init__(
+            self,
+            kernel=models[0].kernel,
+            likelihood=models[0].likelihood,
+            mean_function=models[0].mean_function,
+            num_latent_gps=models[0].num_latent_gps,
+        )
+
+        self.models: List[GPModel] = models
+
+    @property
+    def trainable_variables(self):  # type: ignore
+        r = []
+        for model in self.models:
+            r += model.trainable_variables
+        return r
+
+    def maximum_log_likelihood_objective(self, data: List[RegressionData]) -> tf.Tensor:  # type: ignore
+        [
+            isinstance(m, gpflow.models.ExternalDataTrainingLossMixin)
+            for m in self.models
+        ]
+        objectives = [m.training_loss(d) for m, d in zip_longest(self.models, data)]
+        return tf.reduce_sum(objectives)
+
+    def training_loss(
+        self, data: List[Union[None, RegressionData]] = [None]
+    ) -> tf.Tensor:
+        external = [
+            isinstance(m, gpflow.models.ExternalDataTrainingLossMixin)
+            for m in self.models
+        ]
+        objectives = [
+            m.training_loss(d) if ext else m.training_loss()
+            for m, ext, d in zip_longest(self.models, external, data)
+        ]
+        return tf.reduce_sum(objectives)
+
+
+class NestedGP(GPEnsemble):
+    """
+    Implements the Nested GP predictor (aka NPAE).
+    """
+
+    @check_shapes(
+        "Xnew: [N, D]",
+        "return[0]: [N, broadcast L]",
+        "return[1]: [N, broadcast L]",
+    )
+    def predict_f(
+        self, Xnew: InputData, full_cov: bool = False, full_output_cov: bool = False
+    ) -> MeanAndVariance:
+
+        assert not full_output_cov
+
+        X = tf.concat([m.data[0] for m in self.models], axis=0)  # [n, d]
+        Y = tf.concat([m.data[1] for m in self.models], axis=0)  # [n, 1]
+
+        ki_list = [
+            self.kernel(Xnew, m.data[0]) for m in self.models
+        ]  # elements are [q, ni]
+        Ki_list = [
+            self.kernel(m.data[0])
+            + self.likelihood.variance * tf.eye(m.data[0].shape[0], dtype=tf.float64)
+            for m in self.models
+        ]  # elements are [ni, ni]
+
+        Alpha_list = [
+            ki @ tf.linalg.inv(Ki) for ki, Ki in zip(ki_list, Ki_list)
+        ]  # elements are [q, ni]
+        Alpha_ops = [
+            tf.linalg.LinearOperatorFullMatrix(a[:, None, :]) for a in Alpha_list
+        ]
+        Alpha = tf.linalg.LinearOperatorBlockDiag(Alpha_ops)  # [q, p, n]
+
+        Mx = Alpha.matmul(Y)  # [q, p, 1]
+
+        kM_list = [
+            tf.reduce_sum(alpha * ki, axis=1, keepdims=True)
+            for alpha, ki in zip(Alpha_list, ki_list)
+        ]  # elements are [q, 1]
+        kM = tf.stack(kM_list, axis=2)  # [q, 1, p]
+
+        K = tf.expand_dims(self.kernel(X), axis=0)
+        AM = Alpha.to_dense()
+        KM = AM @ K @ tf.transpose(AM, perm=[0, 2, 1])
+        # KM = Alpha.matmul(Alpha.matmul(K), adjoint_arg=True)  # Should be more efficient numerically, but does not return the right values at the moment!
+
+        Alpha2 = kM @ tf.linalg.inv(KM)  # [q, 1, p]
+        mean = Alpha2 @ Mx  # [q, 1, 1]
+
+        var_correction = Alpha2 @ tf.transpose(kM, perm=[0, 2, 1])  # [q, 1, 1]
+        var = self.kernel.K_diag(Xnew)[:, None] - var_correction[:, :, 0]  # [q, 1]
+
+        return mean[:, 0, :], var

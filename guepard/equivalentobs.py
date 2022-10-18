@@ -116,7 +116,7 @@ class EquivalentObsEnsemble(GPModel):
         # pseudo_noise = vp @ tf.linalg.inv(vp - Ve + Jitter) @ vp - vp
 
         def A_inv_b(chol_A, b):  # type: ignore
-            """Solves A^-1 b using using triagular solves
+            """Solves A^-1 b using using triangular solves
 
             .. math ::
                 A^{-1} b

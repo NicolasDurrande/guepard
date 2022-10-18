@@ -48,12 +48,13 @@ def test_get_svgp_submodels(data):
     y_list = np.array_split(Y, ns)
     kernel = gpflow.kernels.Matern32()
     num_inducing_list = [CONSTS.num_inducing] * ns
+    lik = gpflow.likelihoods.Gaussian(variance=CONSTS.noise_var)
     data_list = list(zip(x_list, y_list))
     models = get_svgp_submodels(
         data_list,
         num_inducing_list,
         kernel,
-        noise_variance=CONSTS.noise_var,
+        lik,
         maxiter=-1,
     )
 
