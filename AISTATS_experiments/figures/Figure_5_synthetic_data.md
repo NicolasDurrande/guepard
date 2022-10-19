@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.13.8
+      jupytext_version: 1.14.1
   kernelspec:
     display_name: 'Python 3.9.13 (''.venv'': poetry)'
     language: python
@@ -150,11 +150,11 @@ if RUN_EXPERIMENT:
         print('time: ', np.round(TIME[i, :], 2))
         print('nlpd: ', np.round(NLPD[i, :], 2))
 
-    np.savez(f"data/synthetic-d_{d}-n_{n}-p_{p}-nrep_{num_rep}.npz", TIME=TIME, NLPD=NLPD, method_name=method_name)
+    np.savez(f"../data/synthetic-d_{d}-n_{n}-p_{p}-nrep_{num_rep}.npz", TIME=TIME, NLPD=NLPD, method_name=method_name)
 
 
 if not RUN_EXPERIMENT:
-    npzfile = np.load(f"data/synthetic-d_{d}-n_{n}-p_{p}-nrep_{num_rep}.npz")
+    npzfile = np.load(f"../data/synthetic-d_{d}-n_{n}-p_{p}-nrep_{num_rep}.npz")
     TIME = npzfile["TIME"]
     NLPD = npzfile["NLPD"]
     method_name = npzfile["method_name"]

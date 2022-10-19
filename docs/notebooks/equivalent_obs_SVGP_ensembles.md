@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.13.8
+      jupytext_version: 1.14.1
   kernelspec:
     display_name: 'Python 3.9.13 (''.venv'': poetry)'
     language: python
@@ -39,7 +39,7 @@ display(HTML("<style>div.output_scroll { height: 150em; }</style>"));
 We now load the banana dataset: This is a binary classification problem with two classes. 
 
 ```python
-data = sio.loadmat('../../data/banana.mat')
+data = sio.loadmat('../data/banana.mat')
 Y = data['banana_Y']
 X = data['banana_X']
 

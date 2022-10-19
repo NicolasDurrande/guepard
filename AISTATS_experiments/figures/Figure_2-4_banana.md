@@ -6,7 +6,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.13.8
+      jupytext_version: 1.14.1
   kernelspec:
     display_name: 'Python 3.9.13 (''.venv'': poetry)'
     language: python
@@ -38,7 +38,7 @@ display(HTML("<style>div.output_scroll { height: 150em; }</style>"));
 ## Figure 2: SVGP ensembles on the banana dataset
 
 ```python
-data = sio.loadmat('../data/banana.mat')
+data = sio.loadmat('../../data/banana.mat')
 Y = data['banana_Y']
 X = data['banana_X']
 
@@ -76,8 +76,6 @@ fig, axes = plt.subplots(2, 2, figsize=(6, 6))
 for i in range(2):
     for j in range(2):
         k = 2 * i + j
-        
-
 
         X_ = X[masks[k], :]
         Y_ = Y[masks[k], :]
