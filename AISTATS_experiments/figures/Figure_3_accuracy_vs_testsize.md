@@ -96,7 +96,7 @@ def compare_full_vs_agg(X, full, agg):
 
 ```python
 NOISE_VAR = 1e-1
-LN_NUM_DATA = 5  # num_datapoints = 2 ** LN_NUM_DATA + 1
+LN_NUM_DATA = 5 
 REPS_ITER = range(50)
 NUM_SPLITS_ITER = [2, 4, 8, 12, 16]
 KERNEL = gpflow.kernels.SquaredExponential(lengthscales=.25)

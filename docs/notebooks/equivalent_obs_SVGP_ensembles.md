@@ -59,7 +59,6 @@ ax.axes.xaxis.set_ticklabels([])
 ax.axes.yaxis.set_ticklabels([])
 
 plt.tight_layout()
-#plt.savefig("plots/banana_data.pdf")
 ```
 
 We then split the dataset in four, with one subset per quadrant of the input space:

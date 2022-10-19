@@ -14,7 +14,7 @@ jupyter:
 ---
 
 # Figure 5: Baseline comparison on Synthetic data
-This notebook compares the accuracy and the wall clock time for various GP ensemble methods
+This notebook compares the accuracy and the wall clock time for various GP ensemble methods.
 
 ```python
 import numpy as np

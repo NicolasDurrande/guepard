@@ -17,7 +17,7 @@ jupyter:
 
 This notebook illustrates the concept of *equivalent observations*.
 
-First, let's load some required packages
+First, let's load some required packages:
 
 ```python
 import numpy as np

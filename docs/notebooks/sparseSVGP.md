@@ -112,7 +112,6 @@ for mask_x, mask_z in zip(masks_x.T, masks_z.T):
     opt = gpflow.optimizers.Scipy()
     opt_logs = opt.minimize(m.training_loss_closure((X_, Y_)), m.trainable_variables);
     M += [m]
-    
 ```
 
 We can now use the equivalent observation framework to merge these four submodels

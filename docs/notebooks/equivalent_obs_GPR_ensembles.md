@@ -72,7 +72,7 @@ The dataset is split in three subsets, and we build a GPR model for each of them
 ```python
 num_split = 3
 
-Xl = np.array_split(X, num_split)  # list of num_split np.array
+Xl = np.array_split(X, num_split)  # list of num_split np.arrays
 Yl = np.array_split(Y, num_split)  
 
 kernel = gpflow.kernels.Matern32()

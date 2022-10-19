@@ -15,7 +15,7 @@ jupyter:
 
 # SVGP ensembles and sparse SVGP on the banana dataset
 
-This notebook contains the code to generate figures 2 and 4. It takes around a minute to run.
+This notebook contains the code to generate figures 2 and 4. It takes a minute or so to run.
 
 
 ```python
