@@ -90,7 +90,7 @@ class EquivalentObsEnsemble(GPModel):
             "[broadcast P, N, broadcast L]",
         )
         vp = cs(
-            self.models[0].kernel.K(Xnew)[None, None, :, :],
+            self.models[0].kernel(Xnew)[None, None, :, :],
             "[broadcast P, broadcast L, N, N]",
         )
 
