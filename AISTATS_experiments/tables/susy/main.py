@@ -12,6 +12,7 @@ import fire
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
+from data import susy
 from scipy.cluster import vq
 from sklearn.metrics import auc, roc_curve
 from tqdm import tqdm, trange
@@ -19,7 +20,6 @@ from tqdm import tqdm, trange
 import gpflow
 
 import guepard
-from data import susy
 
 Dataset = namedtuple("Dataset", ["X", "Y", "X_test", "Y_test"])
 _FILE_DIR = Path(__file__).parent
