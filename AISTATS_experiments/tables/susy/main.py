@@ -8,7 +8,6 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Callable, Optional
 
-import fire
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
@@ -172,4 +171,5 @@ def main(seed: Optional[int] = 0):
 
 
 # if __name__ == "__main__":
+#     import fire
 #     fire.Fire(main)

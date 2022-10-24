@@ -102,17 +102,14 @@ def normalize_weights(weight_matrix: tf.Tensor) -> tf.Tensor:
     return weight_matrix
 
 
-class Ensemble(GPModel):
+class GPEnsemble(GPModel, metaclass=abc.ABCMeta):
     """
-    Implements a range of Ensemble GP models.
+    Base class for GP ensembles.
     """
 
     def __init__(
         self,
         models: List[GPModel],
-        method: EnsembleMethods,
-        weighting: WeightingMethods,
-        power: float = 8.0,
     ):
         """
         :param models: A list of GPflow models with the same prior and likelihood.
@@ -140,9 +137,7 @@ class Ensemble(GPModel):
             mean_function=models[0].mean_function,
             num_latent_gps=models[0].num_latent_gps,
         )
-        self.method = method
-        self.weighting = weighting
-        self.power = power
+
         self.models: List[GPModel] = models
 
     @property
@@ -172,6 +167,28 @@ class Ensemble(GPModel):
             for m, ext, d in zip_longest(self.models, external, data)
         ]
         return tf.reduce_sum(objectives)
+
+
+class Ensemble(GPEnsemble):
+    """
+    Implements a range of Ensemble GP models.
+    """
+
+    def __init__(
+        self,
+        models: List[GPModel],
+        method: EnsembleMethods,
+        weighting: WeightingMethods,
+        power: float = 8.0,
+    ):
+        """
+        :param models: A list of GPflow models with the same prior and likelihood.
+        """
+
+        GPEnsemble.__init__(self, models)
+        self.method = method
+        self.weighting = weighting
+        self.power = power
 
     @check_shapes(
         "Xnew: [N, D]",
@@ -251,73 +268,6 @@ class Ensemble(GPModel):
 
         m, v = self.predict_f(Xnew)
         return self.likelihood.predict_mean_and_var(Xnew, m, v)
-
-
-class GPEnsemble(GPModel, metaclass=abc.ABCMeta):
-    """
-    Base class for GP ensembles.
-    """
-
-    def __init__(
-        self,
-        models: List[GPModel],
-    ):
-        """
-        :param models: A list of GPflow models with the same prior and likelihood.
-        """
-        # check that all models are of the same type (e.g., GPR, SVGP)
-        # check that all models have the same prior
-        for model in models[1:]:
-            assert (
-                model.kernel == models[0].kernel
-            ), "All submodels must have the same kernel"
-            assert (
-                model.likelihood == models[0].likelihood
-            ), "All submodels must have the same likelihood"
-            assert (
-                model.mean_function == models[0].mean_function
-            ), "All submodels must have the same mean function"
-            assert (
-                model.num_latent_gps == models[0].num_latent_gps
-            ), "All submodels must have the same number of latent GPs"
-
-        GPModel.__init__(
-            self,
-            kernel=models[0].kernel,
-            likelihood=models[0].likelihood,
-            mean_function=models[0].mean_function,
-            num_latent_gps=models[0].num_latent_gps,
-        )
-
-        self.models: List[GPModel] = models
-
-    @property
-    def trainable_variables(self):  # type: ignore
-        r = []
-        for model in self.models:
-            r += model.trainable_variables
-        return r
-
-    def maximum_log_likelihood_objective(self, data: List[RegressionData]) -> tf.Tensor:  # type: ignore
-        [
-            isinstance(m, gpflow.models.ExternalDataTrainingLossMixin)
-            for m in self.models
-        ]
-        objectives = [m.training_loss(d) for m, d in zip_longest(self.models, data)]
-        return tf.reduce_sum(objectives)
-
-    def training_loss(
-        self, data: List[Union[None, RegressionData]] = [None]
-    ) -> tf.Tensor:
-        external = [
-            isinstance(m, gpflow.models.ExternalDataTrainingLossMixin)
-            for m in self.models
-        ]
-        objectives = [
-            m.training_loss(d) if ext else m.training_loss()
-            for m, ext, d in zip_longest(self.models, external, data)
-        ]
-        return tf.reduce_sum(objectives)
 
 
 class NestedGP(GPEnsemble):

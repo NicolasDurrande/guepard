@@ -9,7 +9,7 @@ jupyter:
       format_version: '1.3'
       jupytext_version: 1.13.8
   kernelspec:
-    display_name: Python 3.8.13 ('guepard')
+    display_name: 'Python 3.9.13 (''.venv'': poetry)'
     language: python
     name: python3
 ---
@@ -140,7 +140,7 @@ plot_model(m_agg, axes[0], plot_data=False)
 plot_model(m_gpr, axes[0], plot_data=False, color='C1')
 
 axes[1].plot(x, mean_agg - mean_gpr, label="error in predicted mean")
-axes[1].plot(x, np.sqrt(var_agg) - np.sqrt(var_gpr), label="error in predicted standard deviation")
+axes[1].plot(x, np.sqrt(var_agg) - np.sqrt(var_gpr), label="difference in predicted standard deviation")
 plt.legend()
 plt.tight_layout()
 ```
