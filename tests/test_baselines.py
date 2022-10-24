@@ -54,7 +54,7 @@ def test_predict_f_smoke(method, weighting):
     np.testing.assert_array_almost_equal(
         mean_agg.shape,
         mean_gpr.shape,
-        err_msg=f"mismatch between the ensemble predict_f mean shape and the GPflow convention",
+        err_msg=f"mismatch between the {method, weighting} predict_f mean shape and the GPflow convention",
     )
 
     np.testing.assert_array_almost_equal(
