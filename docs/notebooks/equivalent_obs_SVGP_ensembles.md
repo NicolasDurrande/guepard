@@ -93,7 +93,6 @@ for i in range(2):
         axes[i, j].axes.yaxis.set_ticklabels([])
 
 plt.tight_layout()
-#plt.savefig("plots/banana_subdata.pdf")
 ```
 
 We build an SVGP model for each data subset, with 15 inducing variables for each of them. Note that all submodels share the same kernel and that the kernel parameters are fixed.
@@ -153,7 +152,6 @@ for i in range(2):
         axes[i, j].axes.yaxis.set_ticklabels([])
 
 plt.tight_layout()
-#plt.savefig("plots/banana_submodels.pdf")
 ```
 
 We can also plot the submodel predictions in the latent space
@@ -201,7 +199,6 @@ for i in range(2):
         axes[i, j].axes.yaxis.set_ticklabels([])
 
 plt.tight_layout()
-#plt.savefig("plots/banana_sublatents.pdf")
 ```
 
 We can now use the equivalent observation framework to merge these four submodels
@@ -228,7 +225,6 @@ ax.axes.xaxis.set_ticklabels([])
 ax.axes.yaxis.set_ticklabels([])
 
 plt.tight_layout()
-#plt.savefig("plots/banana_latents.pdf")
 
 ```
 
@@ -280,7 +276,6 @@ ax.axes.xaxis.set_ticks([-3, 0, 3])
 ax.axes.yaxis.set_ticks([-3, 0, 3])
 
 plt.tight_layout()
-# plt.savefig("plots/banana_models.pdf")
 ```
 
 we can plot the absolute error
@@ -301,7 +296,7 @@ ax.clabel(cs, inline=1, fontsize=10, fmt='%1.2f')
 ax.set_xlabel("$x_1$", fontsize=14)
 ax.set_ylabel("$x_2$", fontsize=14)
 ax.set_xlim(x1_lim)
-ax.set_ylim(x2_lim)
+ax.set_ylim(x2_lim);
 ```
 
 

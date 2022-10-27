@@ -1,7 +1,7 @@
 Guepard: a library for Gaussian Process Ensembles
 ================================================================
 
-Guepard aims at making Gaussian Process (GP) models faster and amenable to datasets up to a few million points. It relies on ensembles of GP models that are trained on subsets of the data and whose predictions are aggregated at prediction time. It is built on top of Tensorflow_ / GPflow_ and implements various aggregation rules:
+Guepard aims at making Gaussian Process (GP) models faster and amenable to large datasets up to a few million points. It relies on ensembles of GP models where the sub-models are trained on subsets of the data. It is built on top of Tensorflow_ / GPflow_ and implements various rules for aggregating the sub-model predictions into a single distribution:
 
 * Equivalent Observation as described in the AISTATS submission
 * Nested GPs [Rullière 2018]

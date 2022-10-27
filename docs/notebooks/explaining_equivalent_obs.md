@@ -8,7 +8,7 @@ jupyter:
       format_version: '1.3'
       jupytext_version: 1.13.8
   kernelspec:
-    display_name: Python 3.8.13 ('guepard')
+    display_name: Python 3.9.13 ('sandbox-uvFUALUf-py3.9')
     language: python
     name: python3
 ---
@@ -76,7 +76,7 @@ def plt_mvn(mu, Sigma, color='C0', linestyles='solid'):
 
 ```
 
-Let us consider a simple dataset and fit a GP model to it
+We consider in this notebook a simple dataset, and fit a GP model to it:
 
 ```python
 noise_var = 0.01
@@ -92,6 +92,8 @@ kernel = gpflow.kernels.Matern32()
 m = gpflow.models.GPR((X, Y), kernel, noise_variance=noise_var)
 
 plt.plot(X, Y, "kx")
+plt.xlim((-.5, 1.5));
+plt.ylim((-2, 4));
 ```
 
 Given $p$ prediction points $X^*$, the equivalent observation is defined as the vector $Y^*$ and the observation noise $\varepsilon^* \sim \mathcal{N}(0, T)$ such that the posterior distribution of $f(X_t)$ given the equivalent observations matches exactly the posterior of $f(X_t)$ given the full dataset. In other words, $Y^*$ and $\varepsilon^*$ are defined such that
@@ -148,7 +150,6 @@ for ax in axes:
     
 plt.tight_layout()
 
-#plt.savefig("plots/toy_implicit_obs.pdf")
 ```
 
 Alternatively, one may choose to represent the equivalent observation as a likelihood function. With this point of view, the equivalent likelihood is function such that turns the prior distribution at test location into the posterior. It is thus given by the ratio posterior/prior.
@@ -218,9 +219,7 @@ for i, m in enumerate(M):
     ax.set_xticks(Xt.flatten().tolist())
     ax.set_xticklabels(["$x_1$", "$x_2$"])
     
-#[axes[i].plot(X, Y, 'kx', mew=1., alpha=.1) for i, _ in enumerate(M)];
 plt.tight_layout()
-#plt.savefig(f"plots/toy_submodels.pdf")
 ```
 
 We plot the prior, model 1 and the implitic observation at (x1, x2)
@@ -281,7 +280,6 @@ ax.set_ylabel("$f(x_2)$")
 ax.axes.xaxis.set_ticklabels([])
 ax.axes.yaxis.set_ticklabels([])
 plt.tight_layout()
-#plt.savefig("plots/toy_approx_posterior.pdf")
 
 ```
 

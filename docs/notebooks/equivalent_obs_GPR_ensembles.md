@@ -35,7 +35,7 @@ plt.rcParams["figure.figsize"] = (12, 6)
 from IPython.core.display import HTML, display
 display(HTML("<style>div.output_scroll { height: 150em; }</style>"));
 
-# define a couple of plotting helper functions
+## define some plotting helper functions
 def plot_mean_conf(x, mean, var, ax, color='C0'):
         ax.plot(x, mean, color, lw=2)
         ax.fill_between(
@@ -55,7 +55,7 @@ def plot_model(m, ax, x=np.linspace(0, 1, 101)[:, None], plot_data=True, color='
     plot_mean_conf(x, mean, var, ax, color)
 ```
 
-We now define a couple of helper functions, and generate a dataset
+We now generate a simple dataset
 
 ```python
 noise_var = 0.01
@@ -87,13 +87,14 @@ x = np.linspace(0, 2, 101)[:, None]
 [axes[i].plot(X, Y, 'kx', mew=1., alpha=.1) for i, _ in enumerate(submodels)];
 ```
 
-We can now aggregate the three sub-models using PAPL
+We can now create a GP Ensemble model, that encapsulate these three sub-models and that uses the equivalent observation aggregation rule.
 
 ```python
 m_agg = guepard.EquivalentObsEnsemble(submodels)
 
 fig, ax = plt.subplots(1, 1, figsize=(6, 4))
-plot_model(m_agg, ax, plot_data=False)
+ax.plot(X, Y, 'kx', mew=1., alpha=.3)
+plot_model(m_agg, ax, x, plot_data=False)
 ```
 
 Guepard models inherit from `GPflow.GPmodels`, it is thus possible to interact with them like any other GPflow models:
@@ -104,7 +105,6 @@ m_agg.kernel.lengthscales.assign(0.3)
 
 # print the model parameter summary
 gpflow.utilities.print_summary(m_agg)
-
 ```
 
 ## Training the GPR sub-models
@@ -145,7 +145,7 @@ plt.legend()
 plt.tight_layout()
 ```
 
-On this simple example, predictions from PAPL are extremely close to the ground truth despite requiring to store and invert matrices that are 1/3rd of the size of a full model.  
+On this simple example, predictions from the Equiv. Obs Ensemble are extremely close to the ground truth despite requiring to store and invert matrices that are 1/3rd of the size of a full model.  
 
 
 ## Sampling from the posterior
