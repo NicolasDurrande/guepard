@@ -13,7 +13,7 @@ jupyter:
     name: python3
 ---
 
-# The equivalent observations method for GP ensembles
+# Overview of the equivalent observations aggregation method
 
 This notebook illustrates the concept of *equivalent observations*.
 

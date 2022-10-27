@@ -1,7 +1,12 @@
-Speeding up Gaussian Process Models with Equivalent Observations
+Guepard: a library for Gaussian Process Ensembles
 ================================================================
 
-Build on top of GPflow_.
+Guepard aims at making Gaussian Process (GP) models faster and amenable to datasets up to a few million points. It relies on ensembles of GP models that are trained on subsets of the data and whose predictions are aggregated at prediction time. It is built on top of Tensorflow_ / GPflow_ and implements various aggregation rules:
+
+* Equivalent Observation as described in the AISTATS submission
+* Nested GPs [Rullière 2018]
+* Barycenter GP [Cohen 2020]
+* Several classic baselines: (generalised) Product of Expert, (robust) Bayesian committee machine, etc.
 
 .. toctree::
    :maxdepth: 1
@@ -28,3 +33,4 @@ Build on top of GPflow_.
 
 
 .. _GPflow: https://github.com/GPflow/GPflow
+.. _Tensorflow: https://github.com/tensorflow/tensorflow

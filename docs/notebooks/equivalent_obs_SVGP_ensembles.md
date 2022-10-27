@@ -13,7 +13,7 @@ jupyter:
     name: python3
 ---
 
-# Merging SVGP ensembles using equivalent observations
+# SVGP ensembles with equivalent observations
 
 This notebook illustrates how to use the equivalent observation framework to train an ensemble of GP classification models and to make predictions with it.
 

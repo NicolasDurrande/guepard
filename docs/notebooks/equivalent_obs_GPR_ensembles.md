@@ -14,7 +14,7 @@ jupyter:
     name: python3
 ---
 
-# Merging GP regression ensembles using equivalent observations
+# GP regression ensembles with equivalent observations
 
 This notebook illustrates how to use the equivalent observation framework to train an ensemble of Gaussian process models and to make predictions with it.
 
