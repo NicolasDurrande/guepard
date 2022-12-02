@@ -46,9 +46,10 @@ def get_data(num_data, kernel):
     Y = gpflow.models.GPR((np.c_[-10.], np.c_[0.]), kernel, noise_variance=NOISE_VAR).predict_f_samples(X)
     return X, Y
 
-def get_aggregate_model(X, Y, num_splits, kernel):
-    x_list = np.array_split(X, num_splits)  # list of num_split np.array
-    y_list = np.array_split(Y, num_splits)  
+def get_aggregate_model(X, Y, num_splits, kernel, strided: bool = False):
+    size = len(X) // num_splits
+    x_list = get_test_locations(X, size, strided)
+    y_list = get_test_locations(Y, size, strided)
     datasets = list(zip(x_list, y_list))
 
     submodels = get_gpr_submodels(datasets, kernel, mean_function=None, noise_variance=NOISE_VAR) # list of num_split GPR models
@@ -79,12 +80,12 @@ for rep in range(5):
 
     for exp_p in range(1, 5):
         P = int(2 ** exp_p)
-        agg_gpr = get_aggregate_model(X, Y, P, KERNEL)
+        agg_gpr = get_aggregate_model(X, Y, P, KERNEL, STRIDED)
         print("P", P)
         for exp_q in range(6):
             Q = int(2**exp_q)
             print("Q", Q)
-            test_sets = get_test_locations(X, Q, strided=STRIDED)
+            test_sets = get_test_locations(X, Q, strided=False)
             means, variances = [], []
             for test_set in test_sets:
                 m, v = agg_gpr.predict_f(test_set)
@@ -130,13 +131,14 @@ fig.suptitle('')
 ax.set_yscale('log')
 ax.set_ylabel('KL')
 if STRIDED:
-    ax.set_title('Cummulative KL at 32 test locations. Strided.')
+    ax.set_title('Cummulative KL at 32 test locations. Train strided.')
 else:
-    ax.set_title('Cummulative KL at 32 test locations. Non strided.')
+    ax.set_title('Cummulative KL at 32 test locations. Train non strided.')
 
+plt.tight_layout()
 if STRIDED:
-    plt.savefig('acc_vs_q__p_strided.png')
+    plt.savefig('acc_vs_q__train_strided.png')
 else:
-    plt.savefig('acc_vs_q__p_non_strided.png')
+    plt.savefig('acc_vs_q__train_non_strided.png')
 
 # %%
