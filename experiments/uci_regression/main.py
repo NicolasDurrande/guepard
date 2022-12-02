@@ -1,5 +1,6 @@
 from typing import Callable, Tuple
 
+import time
 import datetime
 import json
 import pprint
@@ -18,7 +19,7 @@ from models import GuepardRegression, gPoE_unif, gPoE_var, rBCM_entr, BAR_var, G
 
 
 _THIS_DIR = Path(__file__).parent
-_LOGS = _THIS_DIR / "tmp"
+_LOGS = _THIS_DIR / "results2"
 _EXPERIMENT = Experiment("UCI")
 
 
@@ -101,12 +102,17 @@ def main(_config):
     failed = False
     try:
         # Train
+        start = time.time()
         model.fit(data.X_train, data.Y_train)
+        time_train = time.time() - start
         # Evaluate
+        start = time.time()
         metrics = evaluate_model(model.predict, (data.X_test, data.Y_test))
+        time_eval = time.time() - start
+        metrics.update({'time_train': time_train, 'time_eval': time_eval})
     except Exception as e:
         failed = True
-        metrics = dict(rmse=np.nan, mse=np.nan, nlpd=np.nan)
+        metrics = dict(rmse=np.nan, mse=np.nan, nlpd=np.nan, time_train=np.nan, time_eval=np.nan)
         print(e)
 
     # Save

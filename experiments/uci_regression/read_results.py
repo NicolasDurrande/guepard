@@ -5,12 +5,13 @@ import time
 
 import numpy as np
 import pandas as pd
+from sklearn import datasets
 import streamlit as st
 
 
 st.title("Visualise results")
 
-file_regex = st.text_input(label="Specify location of JSON files", value="./results/*",)
+file_regex = st.text_input(label="Specify location of JSON files", value="./results2/*",)
 print(file_regex)
 
 data = []
@@ -47,7 +48,7 @@ st.write("Aggregate")
 
 default_groupby_keys = ["dataset", "model"]
 average_over = "split"
-all_metrics = ["rmse", "nlpd"]
+all_metrics = ["rmse", "nlpd", 'time_train', 'time_eval']
 all_datasets = list(df.dataset.unique())
 all_models = list(df.model.unique())
 
@@ -106,6 +107,26 @@ for dataset in selected_datasets:
 
 df_table = pd.DataFrame(table).set_index('dataset')
 st.dataframe(df_table)
+
+
+import matplotlib.pyplot as plt
+
+fig, axes = plt.subplots(len(selected_metrics), len(selected_datasets), figsize=(10, 10), sharex=True)
+for j, metric in enumerate(selected_metrics):
+    for i, dataset in enumerate(selected_datasets):
+        ax = axes[j, i]
+        pd.plotting.boxplot(
+            df[df.dataset == dataset], column=metric, by='model', ax=ax, rot=90)
+        ax.set_xlabel(None)
+        if j == len(selected_metrics) - 1:
+            ax.set_xlabel(dataset)
+        if i == 0 and 'time' in metric:
+            ax.set_ylabel('time (s)')
+# fig.title(None)
+plt.tight_layout()
+st.pyplot(fig)
+# plt.plot(np.random.rand(10))
+
 
 # Latex Table
 # =============================================
@@ -213,3 +234,5 @@ table += f"Avg. rank & & & {' & '.join(map(lambda m: f'{ranks.at[m]:.2f}', selec
 table += "\\bottomrule \n"
 table += "\\end{tabular}" 
 st.text_area("Latex table", value=table, height=400)
+
+

@@ -81,6 +81,7 @@ MODELS = [
 ]
 
 MODELS_BASELINE = [
+    'gpr',
     "gPoE_unif",
     "gPoE_var",
     "rBCM_entr",
@@ -98,8 +99,8 @@ if __name__ == "__main__":
     commands = (
         CommandsBuilder()
         .add("split", range(0, 5))
-        .add("dataset", UCI_SMALL + UCI_LARGE)
-        .add("model", ['gpr'])
+        .add("dataset", UCI_LARGE)
+        .add("model", MODELS + MODELS_BASELINE)
         .build()
     )
 
